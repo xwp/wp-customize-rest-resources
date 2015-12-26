@@ -1,4 +1,3 @@
-/* global WP_API_Settings, wp, jQuery, console, _customizeRestResourcesExports */
 wp.customize.RestResources = (function( $, wp, apiSettings ) {
 
 	var self = {

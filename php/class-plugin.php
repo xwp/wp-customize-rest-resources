@@ -54,26 +54,66 @@ class Plugin extends Plugin_Base {
 	 * @action wp_default_scripts
 	 */
 	public function register_scripts( \WP_Scripts $wp_scripts ) {
-		$handle = 'customize-rest-resources';
-		$src = $this->dir_url . 'js/base.js';
-		$deps = array( 'wp-api', 'backbone' );
-		$wp_scripts->add( $handle, $src, $deps, $this->version );
+//		$handle = 'customize-rest-resources';
+//		$src = $this->dir_url . 'js/base.js';
+//		$deps = array( 'wp-api', 'backbone' );
+//		$wp_scripts->add( $handle, $src, $deps, $this->version );
+//
+//		$exports = array();
+//		$wp_scripts->add_data(
+//			$handle,
+//			'data',
+//			sprintf( 'var _customizeRestResourcesExports = %s;', wp_json_encode( $exports ) )
+//		);
+//
+//		$handle = 'customize-rest-resources-controls';
+//		$src = $this->dir_url . 'js/controls.js';
+//		$deps = array( 'customize-controls', 'customize-rest-resources' );
+//		$wp_scripts->add( $handle, $src, $deps, $this->version );
+//
+//		$handle = 'customize-rest-resources-preview';
+//		$src = $this->dir_url . 'js/preview.js';
+//		$deps = array( 'customize-preview', 'customize-rest-resources' );
+//		$wp_scripts->add( $handle, $src, $deps, $this->version );
 
-		$exports = array();
-		$wp_scripts->add_data(
-			$handle,
-			'data',
-			sprintf( 'var _customizeRestResourcesExports = %s;', wp_json_encode( $exports ) )
+		$handle = 'customize-rest-resources-manager';
+		$src = $this->dir_url . 'js/rest-resources-manager.js';
+		$deps = array(
+			'wp-api',
+			'backbone',
 		);
-
-		$handle = 'customize-rest-resources-controls';
-		$src = $this->dir_url . 'js/controls.js';
-		$deps = array( 'customize-controls', 'customize-rest-resources' );
 		$wp_scripts->add( $handle, $src, $deps, $this->version );
 
-		$handle = 'customize-rest-resources-preview';
-		$src = $this->dir_url . 'js/preview.js';
-		$deps = array( 'customize-preview', 'customize-rest-resources' );
+		$handle = 'customize-rest-resources-pane-manager';
+		$src = $this->dir_url . 'js/rest-resources-pane-manager.js';
+		$deps = array(
+			'customize-rest-resources-manager',
+			'customize-controls',
+			'customize-rest-resources-section',
+			'customize-rest-resource-control',
+		);
+		$wp_scripts->add( $handle, $src, $deps, $this->version );
+
+		$handle = 'customize-rest-resources-preview-manager';
+		$src = $this->dir_url . 'js/rest-resources-preview-manager.js';
+		$deps = array(
+			'customize-rest-resources-manager',
+			'customize-preview',
+		);
+		$wp_scripts->add( $handle, $src, $deps, $this->version );
+
+		$handle = 'customize-rest-resources-section';
+		$src = $this->dir_url . 'js/rest-resources-section.js';
+		$deps = array(
+			'customize-controls',
+		);
+		$wp_scripts->add( $handle, $src, $deps, $this->version );
+
+		$handle = 'customize-rest-resource-control';
+		$src = $this->dir_url . 'js/rest-resource-control.js';
+		$deps = array(
+			'customize-controls',
+		);
 		$wp_scripts->add( $handle, $src, $deps, $this->version );
 	}
 
@@ -98,12 +138,12 @@ class Plugin extends Plugin_Base {
 	public function enqueue_customize_controls_scripts() {
 		wp_enqueue_style( 'customize-rest-resources-controls' );
 
-		$handle = 'customize-rest-resources-controls';
+		$handle = 'customize-rest-resources-pane-manager';
 		wp_enqueue_script( $handle );
 		$exports = array(
-			'l10n' => array(
-				'noResourcesLoadedMessage' => __( 'There are no REST API resources yet queried via the WP API JS client in the preview.' ),
-			),
+			//'l10n' => array(
+			//	'noResourcesLoadedMessage' => __( 'There are no REST API resources yet queried via the WP API JS client in the preview.' ),
+			//),
 		);
 		wp_scripts()->add_data(
 			$handle,
@@ -122,7 +162,7 @@ class Plugin extends Plugin_Base {
 			return;
 		}
 		global $wp_customize;
-		$handle = 'customize-rest-resources-preview';
+		$handle = 'customize-rest-resources-preview-manager';
 		wp_enqueue_script( $handle );
 
 		$exports = sprintf( 'var _wpCustomizeRestResourcesPreviewExports = %s;', wp_json_encode( array(
@@ -144,10 +184,10 @@ class Plugin extends Plugin_Base {
 	public function customize_register( \WP_Customize_Manager $wp_customize ) {
 		$wp_customize->register_control_type( __NAMESPACE__ . '\\WP_Customize_REST_Resource_Control' );
 		$section_id = 'rest_resources';
-		$wp_customize->add_section( $section_id, array(
+		$section = new WP_Customize_REST_Resources_Section( $wp_customize, $section_id, array(
 			'title' => __( 'REST Resources', 'customize-rest-resources' ),
-			'type' => 'rest_resources',
 		) );
+		$wp_customize->add_section( $section );
 
 		$i = 0;
 		foreach ( $wp_customize->settings() as $setting ) {
