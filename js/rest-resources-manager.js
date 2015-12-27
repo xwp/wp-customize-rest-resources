@@ -59,17 +59,11 @@ CustomizeRestResources.RestResourcesManager = wp.customize.Class.extend({
 	init: function() {
 		var manager = this;
 		jQuery.ajaxPrefilter( 'json', _.bind( manager.prefilterAjax, manager ) );
-
-		// @todo
-		//wp.customize.bind( 'add', self.notifyDirtySetting );
-		//wp.customize.bind( 'change', self.notifyDirtySetting );
-		//wp.customize.bind( 'saved', self.notifyDirtySettings );
-		//wp.customize.previewer.bind( 'previewedRestResource', self.ensureResourceSettingAndControl  );
 	},
 
 	injectCollectionSync: function() {
 		var manager = this;
-		_.each( this.restApi.collections, function( collection ) {
+		_.each( wp.api.collections, function( collection ) {
 			manager.customizeCollection( collection );
 		} );
 	},
@@ -129,12 +123,14 @@ CustomizeRestResources.RestResourcesManager = wp.customize.Class.extend({
 	 * @param {object} xhr
 	 */
 	prefilterAjax: function( options, originalOptions, xhr ) {
-		var manager = this;
+		var manager = this, restMethod;
 
 		// Abort if not API request or Customizer preview not initialized yet.
 		if ( 0 !== options.url.indexOf( manager.restApiRoot ) ) {
 			return;
 		}
+
+		restMethod = options.type;
 
 		if ( 'GET' !== options.type && 'HEAD' !== options.type && 'undefined' !== typeof console.warn ) {
 			console.warn( 'Performing write request to WP API in Customizer.' );
@@ -146,18 +142,27 @@ CustomizeRestResources.RestResourcesManager = wp.customize.Class.extend({
 			options.type = 'POST';
 		}
 
-		// Include Customizer preview data.
+		// Make sure the query vars for the REST API persist in GET (since REST API explicitly look at $_GET['filter']).
+		if ( options.url.indexOf( '?' ) === -1 ) {
+			options.url += '?';
+		} else {
+			options.url += '&';
+		}
+		if ( options.data && 'GET' === restMethod ) {
+			/*
+			 * We have to make sure the REST query vars are added as GET params
+			 * when the method is GET as otherwise they won't be parsed properly.
+			 * The issue lies in \WP_REST_Request::get_parameter_order() which
+			 * only is looking at \WP_REST_Request::$method instead of $_SERVER['REQUEST_METHOD'].
+			 * @todo Improve \WP_REST_Request::get_parameter_order() to be more aware of X-HTTP-Method-Override
+			 */
+			options.url += options.data;
+		}
+
+		// Include Customizer query vars in preview request POST data.
 		if ( options.data ) {
 			options.data += '&';
 		}
-
 		options.data += jQuery.param( manager.getCustomizeQueryVars() );
-		//
-		//if ( self.preview ) {
-		//	options.data += $.param( self.preview.getCustomizedQueryVars() );
-		//} else if ( self.controls ) {
-		//	options.data += $.param( wp.customize.previewer.query() );
-		//}
-
 	}
 } );
