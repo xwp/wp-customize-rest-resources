@@ -16,8 +16,6 @@ CustomizeRestResources.RestResourcesPreviewManager = CustomizeRestResources.Rest
 		var manager = this;
 		CustomizeRestResources.RestResourcesManager.prototype.initialize.call( manager, args );
 
-		console.info( manager )
-
 		manager.dirtySettings = [];
 		manager.previewActive = jQuery.Deferred();
 
