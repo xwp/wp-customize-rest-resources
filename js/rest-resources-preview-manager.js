@@ -82,6 +82,18 @@ CustomizeRestResources.RestResourcesPreviewManager = CustomizeRestResources.Rest
 
 		manager.previewActive.done( function() {
 			_.each( resources, function( resource ) {
+				// Create the setting for the resource if it doesn't exist..
+				var customizeId, path;
+				path = resource._links.self[0].href.substr( manager.restApiRoot.length );
+				customizeId = 'rest_resource[' + path + ']';
+				if ( ! wp.customize.has( customizeId ) ) {
+					wp.customize.create( customizeId, JSON.stringify( resource ) );
+				}
+
+				/*
+				 * Send the resource to the parent to create the corresponding setting
+				 * in the pane along with any controls.
+				 */
 				wp.customize.preview.send( 'previewedRestResource', resource );
 			} );
 		} );

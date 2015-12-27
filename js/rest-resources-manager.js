@@ -53,11 +53,6 @@ CustomizeRestResources.RestResourcesManager = wp.customize.Class.extend({
 			}
 		} );
 
-		manager.init();
-	},
-
-	init: function() {
-		var manager = this;
 		jQuery.ajaxPrefilter( 'json', _.bind( manager.prefilterAjax, manager ) );
 	},
 
@@ -106,15 +101,13 @@ CustomizeRestResources.RestResourcesManager = wp.customize.Class.extend({
 		return {
 			wp_customize: 'on',
 			theme: manager.previewedTheme,
-			customized: JSON.stringify( customized ),
-			nonce: manager.previewNonce
+			nonce: manager.previewNonce,
+			customized: JSON.stringify( customized )
 		};
 	},
 
 	/**
 	 * Rewrite WP API Ajax requests to inject Customizer state.
-	 *
-	 * @todo This can be in base??
 	 *
 	 * @param {object} options
 	 * @param {string} options.type
@@ -133,7 +126,7 @@ CustomizeRestResources.RestResourcesManager = wp.customize.Class.extend({
 		restMethod = options.type;
 
 		if ( 'GET' !== options.type && 'HEAD' !== options.type && 'undefined' !== typeof console.warn ) {
-			console.warn( 'Performing write request to WP API in Customizer.' );
+			throw new Error( 'Attempted ' + options.type + ' request for ' + options.url + ' when in Customizer. Write interception is not yet implemented.' );
 		}
 
 		// Customizer currently requires POST requests, so use override (force Backbone.emulateHTTP).
