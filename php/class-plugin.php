@@ -17,7 +17,6 @@ class Plugin extends Plugin_Base {
 	 */
 	public function __construct() {
 		$this->plugin_file = dirname( __DIR__ ) . '/customize-rest-resources.php';
-		//$plugin_data = \get_plugin_data( $this->plugin_file );
 
 		parent::__construct();
 
@@ -31,13 +30,18 @@ class Plugin extends Plugin_Base {
 	 * @action after_setup_theme
 	 */
 	public function init() {
+		if ( ! function_exists( 'get_rest_url' ) ) {
+			add_action( 'admin_notices', array( $this, 'show_missing_rest_api_admin_notice' ) );
+			return;
+		}
+
 		$this->config = apply_filters( 'customize_rest_resources_plugin_config', $this->config, $this );
 
 		add_action( 'wp_default_scripts', array( $this, 'register_scripts' ), 11 );
 		add_action( 'wp_default_styles', array( $this, 'register_styles' ), 11 );
 
 		add_action( 'customize_controls_enqueue_scripts', array( $this, 'enqueue_customize_controls_scripts' ) );
-		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_customize_preview_scripts' ) );
+		add_action( 'customize_preview_init', array( $this, 'customize_preview_init' ) );
 
 		add_action( 'customize_register', array( $this, 'customize_register' ), 20 );
 		add_action( 'customize_dynamic_setting_args', array( $this, 'filter_dynamic_setting_args' ), 10, 2 );
@@ -48,37 +52,34 @@ class Plugin extends Plugin_Base {
 	}
 
 	/**
+	 * Show error when REST API is not available.
+	 *
+	 * @action admin_notices
+	 */
+	public function show_missing_rest_api_admin_notice() {
+		?>
+		<div class="error">
+			<p><?php esc_html_e( 'The Customize REST Resources plugin requires the WordPress REST API to be available.', 'customize-rest-resources' ); ?></p>
+		</div>
+		<?php
+	}
+
+	/**
 	 * Register scripts.
 	 *
 	 * @param \WP_Scripts $wp_scripts Instance of \WP_Scripts.
 	 * @action wp_default_scripts
 	 */
 	public function register_scripts( \WP_Scripts $wp_scripts ) {
-//		$handle = 'customize-rest-resources';
-//		$src = $this->dir_url . 'js/base.js';
-//		$deps = array( 'wp-api', 'backbone' );
-//		$wp_scripts->add( $handle, $src, $deps, $this->version );
-//
-//		$exports = array();
-//		$wp_scripts->add_data(
-//			$handle,
-//			'data',
-//			sprintf( 'var _customizeRestResourcesExports = %s;', wp_json_encode( $exports ) )
-//		);
-//
-//		$handle = 'customize-rest-resources-controls';
-//		$src = $this->dir_url . 'js/controls.js';
-//		$deps = array( 'customize-controls', 'customize-rest-resources' );
-//		$wp_scripts->add( $handle, $src, $deps, $this->version );
-//
-//		$handle = 'customize-rest-resources-preview';
-//		$src = $this->dir_url . 'js/preview.js';
-//		$deps = array( 'customize-preview', 'customize-rest-resources' );
-//		$wp_scripts->add( $handle, $src, $deps, $this->version );
+		$handle = 'customize-rest-resources-namespace';
+		$src = $this->dir_url . 'js/namespace.js';
+		$deps = array();
+		$wp_scripts->add( $handle, $src, $deps, $this->version );
 
 		$handle = 'customize-rest-resources-manager';
 		$src = $this->dir_url . 'js/rest-resources-manager.js';
 		$deps = array(
+			'customize-rest-resources-namespace',
 			'wp-api',
 			'backbone',
 		);
@@ -87,6 +88,7 @@ class Plugin extends Plugin_Base {
 		$handle = 'customize-rest-resources-pane-manager';
 		$src = $this->dir_url . 'js/rest-resources-pane-manager.js';
 		$deps = array(
+			'customize-rest-resources-namespace',
 			'customize-rest-resources-manager',
 			'customize-controls',
 			'customize-rest-resources-section',
@@ -97,6 +99,7 @@ class Plugin extends Plugin_Base {
 		$handle = 'customize-rest-resources-preview-manager';
 		$src = $this->dir_url . 'js/rest-resources-preview-manager.js';
 		$deps = array(
+			'customize-rest-resources-namespace',
 			'customize-rest-resources-manager',
 			'customize-preview',
 		);
@@ -105,6 +108,7 @@ class Plugin extends Plugin_Base {
 		$handle = 'customize-rest-resources-section';
 		$src = $this->dir_url . 'js/rest-resources-section.js';
 		$deps = array(
+			'customize-rest-resources-namespace',
 			'customize-controls',
 		);
 		$wp_scripts->add( $handle, $src, $deps, $this->version );
@@ -112,6 +116,7 @@ class Plugin extends Plugin_Base {
 		$handle = 'customize-rest-resource-control';
 		$src = $this->dir_url . 'js/rest-resource-control.js';
 		$deps = array(
+			'customize-rest-resources-namespace',
 			'customize-controls',
 		);
 		$wp_scripts->add( $handle, $src, $deps, $this->version );
@@ -124,8 +129,8 @@ class Plugin extends Plugin_Base {
 	 * @action wp_default_styles
 	 */
 	public function register_styles( \WP_Styles $wp_styles ) {
-		$handle = 'customize-rest-resources-controls';
-		$src = $this->dir_url . 'css/customize-controls.css';
+		$handle = 'customize-rest-resources-pane';
+		$src = $this->dir_url . 'css/customize-pane.css';
 		$deps = array( 'customize-controls' );
 		$wp_styles->add( $handle, $src, $deps, $this->version );
 	}
@@ -136,20 +141,40 @@ class Plugin extends Plugin_Base {
 	 * @action customize_controls_enqueue_scripts
 	 */
 	public function enqueue_customize_controls_scripts() {
-		wp_enqueue_style( 'customize-rest-resources-controls' );
+		wp_enqueue_style( 'customize-rest-resources-pane' );
+		wp_enqueue_script( 'customize-rest-resources-pane-manager' );
+		add_action( 'customize_controls_print_footer_scripts', array( $this, 'boot_pane_script' ), 100 );
+	}
 
-		$handle = 'customize-rest-resources-pane-manager';
-		wp_enqueue_script( $handle );
-		$exports = array(
-			//'l10n' => array(
-			//	'noResourcesLoadedMessage' => __( 'There are no REST API resources yet queried via the WP API JS client in the preview.' ),
-			//),
+	/**
+	 * Boot script for Customizer pane.
+	 *
+	 * @action customize_controls_print_footer_scripts
+	 */
+	public function boot_pane_script() {
+		global $wp_customize;
+		wp_print_scripts( array( 'customize-rest-resources-pane-manager' ) );
+
+		$args = array(
+			'previewedTheme' => $wp_customize->get_stylesheet(),
+			'previewNonce' => wp_create_nonce( 'preview-customize_' . $wp_customize->get_stylesheet() ),
+			'restApiRoot' => get_rest_url(),
 		);
-		wp_scripts()->add_data(
-			$handle,
-			'data',
-			sprintf( 'var _customizeRestResourcesControlsExports = %s;', wp_json_encode( $exports ) )
-		);
+		?>
+		<script>
+		/* global CustomizeRestResources */
+		CustomizeRestResources.manager = new CustomizeRestResources.RestResourcesPaneManager( <?php echo wp_json_encode( $args ) ?> );
+		</script>
+		<?php
+	}
+
+	/**
+	 * Setup Customizer preview.
+	 *
+	 * @action customize_preview_init
+	 */
+	public function customize_preview_init() {
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_customize_preview_scripts' ) );
 	}
 
 	/**
@@ -158,19 +183,32 @@ class Plugin extends Plugin_Base {
 	 * @action wp_enqueue_scripts
 	 */
 	public function enqueue_customize_preview_scripts() {
-		if ( ! is_customize_preview() ) {
-			return;
-		}
-		global $wp_customize;
-		$handle = 'customize-rest-resources-preview-manager';
-		wp_enqueue_script( $handle );
-
-		$exports = sprintf( 'var _wpCustomizeRestResourcesPreviewExports = %s;', wp_json_encode( array(
-			'nonce' => wp_create_nonce( 'preview-customize_' . $wp_customize->get_stylesheet() ),
-			'theme' => $wp_customize->get_stylesheet(),
-		) ) );
-		wp_scripts()->add_data( $handle, 'data', $exports );
+		wp_enqueue_script( 'customize-rest-resources-preview-manager' );
+		add_action( 'wp_print_footer_scripts', array( $this, 'boot_preview_script' ), 100 );
 	}
+
+	/**
+	 * Boot script for Customizer preview.
+	 *
+	 * @action wp_print_footer_scripts
+	 */
+	public function boot_preview_script() {
+		global $wp_customize;
+		wp_print_scripts( array( 'customize-rest-resources-preview-manager' ) );
+
+		$args = array(
+			'previewedTheme' => $wp_customize->get_stylesheet(),
+			'previewNonce' => wp_create_nonce( 'preview-customize_' . $wp_customize->get_stylesheet() ),
+			'restApiRoot' => get_rest_url(),
+		);
+		?>
+		<script>
+		/* global CustomizeRestResources */
+		CustomizeRestResources.manager = new CustomizeRestResources.RestResourcesPreviewManager( <?php echo wp_json_encode( $args ) ?> );
+		</script>
+		<?php
+	}
+
 
 	/**
 	 * Register section and controls for REST resources.

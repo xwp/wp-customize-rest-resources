@@ -1,0 +1,2 @@
+/* exported CustomizeRestResources */
+var CustomizeRestResources = {};

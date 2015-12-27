@@ -1,4 +1,4 @@
-/* global wp, JSON */
+/* global wp, JSON, CustomizeRestResources */
 
 /**
  * A control for managing a REST resource.
@@ -7,7 +7,7 @@
  * @augments wp.customize.Control
  * @augments wp.customize.Class
  */
-wp.customize.controlConstructor.rest_resource = wp.customize.RestResourceControl = wp.customize.Control.extend({
+CustomizeRestResources.RestResourceControl = wp.customize.Control.extend({
 
 	/**
 	 * Initializer.
@@ -23,7 +23,7 @@ wp.customize.controlConstructor.rest_resource = wp.customize.RestResourceControl
 		options = options || {};
 		options.params = options.params || {};
 		if ( ! options.params.content ) {
-			options.params.content = $( '<li></li>', {
+			options.params.content = jQuery( '<li></li>', {
 				id: 'customize-control-' + id.replace( /]/g, '' ).replace( /\[/g, '-' ),
 				'class': 'customize-control customize-control-rest_resource'
 			} );

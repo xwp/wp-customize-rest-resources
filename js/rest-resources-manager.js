@@ -1,43 +1,18 @@
-/* global JSON, wp, jQuery, console, _customizeRestResourcesExports */
+/* global CustomizeRestResources, JSON, wp, jQuery, console */
 
 /**
  * Rest Resource Manager.
  *
  * @class
  * @param {object} args
- * @param {wp.customize.Values} args.customizeApi
- * @param {object} args.restApi
- * @param {object} args.restApiSettings
  * @param {string} args.previewNonce
  * @param {string} args.previewedTheme
  * @param {string} args.restApiRoot
- * @param {string} args.restApiNonce
- * @todo @param {object} args.customizeApiSettings ???
- * @todo @param {string} args.customizeApiSettings.nonce ???
- * @todo @param {string} args.customizeApiSettings.theme ???
  */
-wp.customize.RestResourcesManager = wp.customize.Class.extend({
+CustomizeRestResources.RestResourcesManager = wp.customize.Class.extend({
 
 	initialize: function ( args ) {
 		var manager = this;
-
-		/**
-		 * The wp.customize object.
-		 *
-		 * @type {wp.customize.Values} customizeApi - wp.customize.
-		 */
-		manager.customizeApi = args.customizeApi;
-
-		/**
-		 * The settings for the Customizer.
-		 *
-		 * @see wp.customize.settings
-		 *
-		 * @type {object} customizeApiSettings
-		 * @type {string} customizeApiSettings.nonce - Preview nonce.
-		 * @type {string} customizeApiSettings.theme - Previewed theme.
-		 */
-		//@todo manager.customizeApiSettings = args.customizeApiSettings; ???
 
 		/**
 		 * Customizer preview nonce.
@@ -54,44 +29,29 @@ wp.customize.RestResourcesManager = wp.customize.Class.extend({
 		manager.previewedTheme = args.previewedTheme;
 
 		/**
-		 * The wp.api object.
-		 *
-		 * @type {object} restApi - wp.api object.
-		 * @type {object.<string, Backbone.Collection>} restApi.collections - Collections.
-		 * @type {object.<string, Backbone.Model>} restApi.models - Models.
-		 */
-		manager.restApi = args.restApi;
-
-		/**
-		 * WP_API_Settings
-		 *
-		 * @see rest_register_scripts() in PHP.
-		 *
-		 * @type {object} restApiSettings - WP_API_Settings.
-		 * @type {string} restApiSettings.nonce - Nonce.
-		 * @type {string} restApiSettings.root - API root URL.
-		 */
-		//@todo manager.restApiSettings = args.restApiSettings;  ???
-
-		/**
 		 * REST API Root URL.
 		 *
 		 * @type {string}
 		 */
 		manager.restApiRoot = args.restApiRoot;
 
-		/**
-		 * REST API Nonce.
-		 *
-		 * @todo Do we even need this?
-		 *
-		 * @type {string}
-		 */
-		manager.restApiNonce = args.restApiNonce;
-
-		if ( ! manager.restApi || 0 === _.values( manager.restApi.collections ).length || 0 === _.values( manager.restApi.models ).length ) {
+		if ( 'undefined' === typeof wp ) {
+			throw new Error( 'wp object is not defined' );
+		}
+		if ( 'undefined' === typeof wp.customize ) {
+			throw new Error( 'wp.customize is not defined' );
+		}
+		if ( 'undefined' === typeof wp.api ) {
+			throw new Error( 'wp.api is not defined' );
+		}
+		if ( 0 === _.values( wp.api.collections ).length || 0 === _.values( wp.api.models ).length ) {
 			throw new Error( 'wp.api has not been initialized yet' );
 		}
+		_.each( [ 'restApiRoot', 'previewNonce', 'previewedTheme' ], function( key ) {
+			if ( ! manager[ key ] ) {
+				throw new Error( 'Missing ' + key + ' arg' );
+			}
+		} );
 
 		manager.init();
 	},
@@ -133,21 +93,7 @@ wp.customize.RestResourcesManager = wp.customize.Class.extend({
 	},
 
 	/**
-	 * Get the customized data to send in the request.
-	 *
-	 * Note that this should be overridden by a subclass to only include dirty settings.
-	 *
-	 * @returns {object}
-	 */
-	getCustomizedData: function() {
-		var manager = this, customized = {};
-		manager.customizeApi.each( function( setting, settingId ) {
-			customized[ settingId ] = wp.customize( settingId ).get();
-		} );
-		return customized;
-	},
-
-	/**
+	 * Get query vars for Customize preview query.
 	 *
 	 * @see wp.customize.previewer.query
 	 *
@@ -159,12 +105,15 @@ wp.customize.RestResourcesManager = wp.customize.Class.extend({
 	 * }}
 	 */
 	getCustomizeQueryVars: function() {
-		var manager = this;
+		var manager = this, customized = {};
+		wp.customize.each( function( setting, settingId ) {
+			customized[ settingId ] = wp.customize( settingId ).get();
+		} );
 		return {
 			wp_customize: 'on',
-			theme: manager.customizeApiSettings.theme,
-			customized: JSON.stringify( manager.getCustomizedData() ),
-			nonce: manager.customizeApiSettings.nonce
+			theme: manager.previewedTheme,
+			customized: JSON.stringify( customized ),
+			nonce: manager.previewNonce
 		};
 	},
 

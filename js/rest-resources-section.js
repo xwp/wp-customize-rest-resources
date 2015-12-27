@@ -1,4 +1,4 @@
-/* global wp, jQuery, _customizeRestResourcesL10n */
+/* global wp, jQuery, CustomizeRestResources */
 
 /**
  * A section for managing a REST resources.
@@ -7,7 +7,7 @@
  * @augments wp.customize.Section
  * @augments wp.customize.Class
  */
-wp.customize.sectionConstructor.rest_resources = wp.customize.RestResourcesSection = wp.customize.Section.extend({
+CustomizeRestResources.RestResourcesSection = wp.customize.Section.extend({
 
 	ready: function() {
 		var section = this, $ = jQuery;
