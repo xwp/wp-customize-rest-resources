@@ -39,7 +39,7 @@ CustomizeRestResources.RestResourcesPreviewManager = CustomizeRestResources.Rest
 				manager.previewActive.resolve();
 			} );
 
-			jQuery( document ).ajaxSuccess( _.bind( manager.handleAjaxSuccess, manager ) );
+			//jQuery( document ).ajaxSuccess( _.bind( manager.handleAjaxSuccess, manager ) );
 		});
 	},
 
@@ -53,12 +53,37 @@ CustomizeRestResources.RestResourcesPreviewManager = CustomizeRestResources.Rest
 			value = args[1],
 			matches;
 
+		// @todo Create the setting if it doesn't already exist.
+
 		matches = id.match( /^rest_resource\[(.+?)]/ );
 		if ( matches ) {
 			console.info( matches[1], value );
 		}
 
 		// @todo Now we need to figure out which collection contains this resource, and then update it in place.
+	},
+
+	/**
+	 * Send the setting to tha Customizer pane when it is created in the preview.
+	 *
+	 * Create and add the setting for a given REST Resource.
+	 *
+	 * @param {object} resource
+	 * @returns {wp.customize.Setting|null}
+	 */
+	ensureSetting: function( resource ) {
+		var manager = this, setting;
+		setting = CustomizeRestResources.RestResourcesManager.prototype.ensureSetting.call( manager, resource );
+
+		/*
+		 * Send the resource to the parent to create the corresponding setting
+		 * in the pane along with any controls.
+		 */
+		manager.previewActive.done( function() {
+			wp.customize.preview.send( 'previewedRestResource', setting() );
+		} );
+
+		return setting;
 	},
 
 	/**
@@ -80,23 +105,19 @@ CustomizeRestResources.RestResourcesPreviewManager = CustomizeRestResources.Rest
 			resources = [ data ];
 		}
 
-		manager.previewActive.done( function() {
+		//manager.previewActive.done( function() {
 			_.each( resources, function( resource ) {
-				// Create the setting for the resource if it doesn't exist..
-				var customizeId, path;
-				path = resource._links.self[0].href.substr( manager.restApiRoot.length );
-				customizeId = 'rest_resource[' + path + ']';
-				if ( ! wp.customize.has( customizeId ) ) {
-					wp.customize.create( customizeId, JSON.stringify( resource ) );
-				}
+
+				// Ensure the setting is created. This will be done automatically if there is a Backbone model.
+				manager.ensureSetting( resource );
 
 				/*
 				 * Send the resource to the parent to create the corresponding setting
 				 * in the pane along with any controls.
 				 */
-				wp.customize.preview.send( 'previewedRestResource', resource );
+				//wp.customize.preview.send( 'previewedRestResource', resource );
 			} );
-		} );
+		//} );
 	},
 
 	/**
@@ -125,4 +146,25 @@ CustomizeRestResources.RestResourcesPreviewManager = CustomizeRestResources.Rest
 		};
 	}
 
+	/**
+	 * Create the Customizer setting for any REST API model created.
+	 *
+	 * @param {Backbone.Model} model
+	 * @param {array} args
+	 */
+	//initializeBackboneModel: function( model, args ) {
+	//	// Create the setting for the resource if it doesn't exist..
+	//	var manager = this, customizeId, path;
+	//
+	//	// @todo Add a change event for when self is defined, to then make sure the setting gets initialized.
+	//	if ( ! model.attributes._links.self ) {
+	//		return;
+	//	}
+	//
+	//	path = model.attributes._links.self[0].href.substr( manager.restApiRoot.length );
+	//	customizeId = 'rest_resource[' + path + ']';
+	//	if ( ! wp.customize.has( customizeId ) ) {
+	//		wp.customize.create( customizeId, JSON.stringify( model.toJSON() ) );
+	//	}
+	//}
 });

@@ -24,9 +24,65 @@ CustomizeRestResources.RestResourcesPaneManager = CustomizeRestResources.RestRes
 			wp.customize.bind( 'add', callback );
 			wp.customize.bind( 'change', callback );
 			wp.customize.bind( 'saved', callback );
-			wp.customize.previewer.bind( 'previewedRestResource', _.bind( manager.ensureResourceSettingAndControl, manager ) );
+			wp.customize.previewer.bind( 'previewedRestResource', function( resource ) {
+				if ( _.isString( resource ) ) {
+					resource = JSON.parse( resource );
+				}
+				manager.ensureSetting( resource );
+			} );
 		});
 	},
+
+	/**
+	 * Send the setting to tha Customizer pane when it is created in the preview.
+	 *
+	 * Create and add the setting for a given REST Resource.
+	 *
+	 * @param {object} resource
+	 * @returns {wp.customize.Setting|null}
+	 */
+	ensureSetting: function( resource ) {
+		var manager = this, setting, customizeId;
+		setting = CustomizeRestResources.RestResourcesManager.prototype.ensureSetting.call( manager, resource );
+		customizeId = setting.id;
+
+		if ( ! wp.customize.control.has( customizeId ) ) {
+			wp.customize.control.add( customizeId, new CustomizeRestResources.RestResourceControl( customizeId, {
+				params: {
+					settings: {
+						'default': setting.id
+					},
+					section: 'rest_resources',
+					priority: wp.customize.section( 'rest_resources' ).controls().length + 1
+				}
+			} ) );
+		}
+
+		return setting;
+	},
+
+	/**
+	 * Create and add the setting for a given REST Resource.
+	 *
+	 * @param {object} resource
+	 * @returns {{wp.customize.Setting|null}}
+	 */
+	//ensureSetting: function( resource ) {
+	//	var manager = this, customizeId, setting;
+	//
+	//	customizeId = manager.getCustomizeId( resource );
+	//	if ( ! customizeId ) {
+	//		return null;
+	//	}
+	//	setting = wp.customize( customizeId );
+	//	if ( ! setting ) {
+	//		setting = wp.customize.create( customizeId, customizeId, JSON.stringify( resource ), {
+	//			transport: 'postMessage',
+	//			previewer: wp.customize.previewer
+	//		} );
+	//	}
+	//	return setting;
+	//},
 
 	/**
 	 * Notify the preview of a dirty setting.
@@ -56,11 +112,14 @@ CustomizeRestResources.RestResourcesPaneManager = CustomizeRestResources.RestRes
 	 * Ensure there is a Customizer setting for the supplied REST resource.
 	 */
 	ensureResourceSettingAndControl: function( resource ) {
+
+		console.info( 'ensureResourceSettingAndControl', resource );
+		return;
+
 		var manager = this, path, customizeId;
 		path = resource._links.self[0].href.substr( manager.restApiRoot.length );
 		customizeId = 'rest_resource[' + path + ']';
 		if ( ! wp.customize.has( customizeId ) ) {
-
 			// @todo Should we store the JSON string or the JS object in the setting?
 			wp.customize.create( customizeId, customizeId, JSON.stringify( resource ), {
 				transport: 'postMessage',

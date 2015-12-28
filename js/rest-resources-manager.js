@@ -35,6 +35,12 @@ CustomizeRestResources.RestResourcesManager = wp.customize.Class.extend({
 		 */
 		manager.restApiRoot = args.restApiRoot;
 
+		/**
+		 * Mapping of setting ID to array of backbone Models.
+		 * @type {Object.<string, Array>}
+		 */
+		manager.settingModels = {};
+
 		if ( 'undefined' === typeof wp ) {
 			throw new Error( 'wp object is not defined' );
 		}
@@ -54,32 +60,84 @@ CustomizeRestResources.RestResourcesManager = wp.customize.Class.extend({
 		} );
 
 		jQuery.ajaxPrefilter( 'json', _.bind( manager.prefilterAjax, manager ) );
+
+		manager.injectModelSync();
+		//manager.injectCollectionSync();
 	},
 
-	injectCollectionSync: function() {
-		var manager = this;
-		_.each( wp.api.collections, function( collection ) {
-			manager.customizeCollection( collection );
-		} );
+	/**
+	 * Inject logic to each model to register it among the instances of a given resource.
+	 */
+	injectModelSync: function() {
+		var manager = this, WPApiBaseModel, originalModelInitialize;
+
+		WPApiBaseModel = _.first( _.values( wp.api.models ) ).__super__.constructor;
+
+		originalModelInitialize = WPApiBaseModel.prototype.initialize;
+		WPApiBaseModel.prototype.initialize = function() {
+			var model = this;
+			originalModelInitialize.apply( model, arguments );
+			manager.initializeBackboneModel.call( manager, model, arguments );
+		};
 	},
+
+	//injectCollectionSync: function() {
+	//	// BaseCollection
+	//	var manager = this, BaseCollection, WPApiBaseModel, originalCollectionInitialize, originalModelInitialize;
+	//
+	//	// These two are needed because the parent classes of WP API Backbone collections are currently private.
+	//	BaseCollection = _.first( _.values( wp.api.collections ) ).__super__.constructor;
+	//
+	//	originalCollectionInitialize = BaseCollection.prototype.initialize;
+	//	BaseCollection.prototype.initialize = function() {
+	//		var collection = this;
+	//
+	//		collection.on( 'add', function() {
+	//			console.info( 'added' )
+	//		} );
+	//
+	//		originalCollectionInitialize.apply( collection, arguments );
+	//	};
+	//
+	//
+	//	return;
+	//
+	//	console.info( BaseCollection )
+	//
+	//	return;
+	//
+	//	WPApiBaseModel = _.first( _.values( wp.api.models ) ).__super__;
+	//
+	//
+	//
+	//
+	//	console.info( collection.__super__.initialize.toString() )
+	//	return;
+	//
+	//	_.each( wp.api.collections, function( collection ) {
+	//		console.info( collection.__super__ )
+	//
+	//		manager.customizeCollection( collection );
+	//	} );
+	//},
 
 	/**
 	 * Extend a WP API Backbone collection to integrate with the Customizer.
 	 *
 	 * @param {Backbone.Collection} collection
 	 */
-	customizeCollection: function ( collection ) {
-		var oldInitialize = collection.prototype.initialize;
-		collection.prototype.initialize = function () {
-			var collection = this;
-			oldInitialize.apply( collection, arguments );
-			collection.on( 'add', function( model, collection, options ) {
-				console.info( 'added', model );
-				// @todo Make sure that
-			} );
-
-		};
-	},
+	//customizeCollection: function ( collection ) {
+	//	var oldInitialize = collection.prototype.initialize;
+	//	collection.prototype.initialize = function () {
+	//		var collection = this;
+	//		oldInitialize.apply( collection, arguments );
+	//		collection.on( 'add', function( model, collection, options ) {
+	//			console.info( 'added', model );
+	//			// @todo Make sure that
+	//		} );
+	//
+	//	};
+	//},
 
 	/**
 	 * Get query vars for Customize preview query.
@@ -104,6 +162,101 @@ CustomizeRestResources.RestResourcesManager = wp.customize.Class.extend({
 			nonce: manager.previewNonce,
 			customized: JSON.stringify( customized )
 		};
+	},
+
+	//createSetting: function( path, resource ) {
+	//
+	//},
+
+	/**
+	 * Get the ID for the Customzier setting (or control).
+	 *
+	 * @param {object} resource
+	 * @param {object} resource._links
+	 * @param {array} resource._links.self
+	 * @returns {string|null}
+	 */
+	getCustomizeId: function( resource ) {
+		var manager = this, path, customizeId;
+		if ( ! resource._links.self ) {
+			return null;
+		}
+
+		path = resource._links.self[0].href.substr( manager.restApiRoot.length );
+		customizeId = 'rest_resource[' + path + ']';
+		return customizeId;
+	},
+
+	/**
+	 * Create and add the setting for a given REST Resource.
+	 *
+	 * @param {object} resource
+	 * @returns {wp.customize.Setting|null}
+	 */
+	ensureSetting: function( resource ) {
+		var manager = this, customizeId, setting;
+
+		customizeId = manager.getCustomizeId( resource );
+		if ( ! customizeId ) {
+			return null;
+		}
+		setting = wp.customize( customizeId );
+		if ( ! setting ) {
+			if ( wp.customize.Setting ) {
+				// This will run in the Customizer pane.
+				setting = new wp.customize.Setting( customizeId, JSON.stringify( resource ), {
+					transport: 'postMessage',
+					previewer: wp.customize.previewer || null
+				} );
+			} else {
+				// This will run in the Customizer preview.
+				setting = new wp.customize.Value( JSON.stringify( resource ) );
+				setting.id = customizeId;
+			}
+			wp.customize.add( customizeId, setting );
+		}
+		return setting;
+	},
+
+	/**
+	 * Create the Customizer setting for any REST API model created.
+	 *
+	 * @param {Backbone.Model} model
+	 * @param {function} model.toJSON
+	 */
+	initializeBackboneModel: function( model ) {
+		var manager = this, setting, registerSelf;
+
+		/**
+		 * Create the Customizer setting for a given model and keep track of the
+		 * model instances created for a given resource (and setting).
+		 *
+		 * @this Backbone.Model
+		 * @returns {boolean}
+		 */
+		registerSelf = function() {
+			var model = this;
+			if ( model.attributes._links && model.attributes._links.self ) {
+				setting = manager.ensureSetting( model.toJSON() );
+				if ( setting ) {
+					if ( ! manager.settingModels[ setting.id ] ) {
+						manager.settingModels[ setting.id ] = [];
+					}
+					if ( -1 === manager.settingModels[ setting.id ].indexOf( model ) ) {
+						manager.settingModels[ setting.id ].push( model );
+					}
+					return true;
+				}
+			}
+			return false;
+		};
+
+		// Defer registering the model until it is saved.
+		if ( ! registerSelf.call( model ) ) {
+			model.on( 'change:_links', function() {
+				registerSelf.call( this );
+			} );
+		}
 	},
 
 	/**
