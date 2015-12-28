@@ -30,7 +30,7 @@ class Plugin extends Plugin_Base {
 	 * @action after_setup_theme
 	 */
 	public function init() {
-		if ( ! function_exists( 'get_rest_url' ) ) {
+		if ( ! function_exists( 'get_rest_url' ) || ! apply_filters( 'rest_enabled', true ) ) {
 			add_action( 'admin_notices', array( $this, 'show_missing_rest_api_admin_notice' ) );
 			return;
 		}
@@ -59,7 +59,7 @@ class Plugin extends Plugin_Base {
 	public function show_missing_rest_api_admin_notice() {
 		?>
 		<div class="error">
-			<p><?php esc_html_e( 'The Customize REST Resources plugin requires the WordPress REST API to be available.', 'customize-rest-resources' ); ?></p>
+			<p><?php esc_html_e( 'The Customize REST Resources plugin requires the WordPress REST API to be available and enabled.', 'customize-rest-resources' ); ?></p>
 		</div>
 		<?php
 	}
