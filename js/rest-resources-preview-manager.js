@@ -105,19 +105,11 @@ CustomizeRestResources.RestResourcesPreviewManager = CustomizeRestResources.Rest
 			resources = [ data ];
 		}
 
-		//manager.previewActive.done( function() {
-			_.each( resources, function( resource ) {
+		_.each( resources, function( resource ) {
 
-				// Ensure the setting is created. This will be done automatically if there is a Backbone model.
-				manager.ensureSetting( resource );
-
-				/*
-				 * Send the resource to the parent to create the corresponding setting
-				 * in the pane along with any controls.
-				 */
-				//wp.customize.preview.send( 'previewedRestResource', resource );
-			} );
-		//} );
+			// Ensure the setting is created. This will be done automatically if there is a Backbone model.
+			manager.ensureSetting( resource );
+		} );
 	},
 
 	/**
@@ -145,26 +137,4 @@ CustomizeRestResources.RestResourcesPreviewManager = CustomizeRestResources.Rest
 			customized: JSON.stringify( customized )
 		};
 	}
-
-	/**
-	 * Create the Customizer setting for any REST API model created.
-	 *
-	 * @param {Backbone.Model} model
-	 * @param {array} args
-	 */
-	//initializeBackboneModel: function( model, args ) {
-	//	// Create the setting for the resource if it doesn't exist..
-	//	var manager = this, customizeId, path;
-	//
-	//	// @todo Add a change event for when self is defined, to then make sure the setting gets initialized.
-	//	if ( ! model.attributes._links.self ) {
-	//		return;
-	//	}
-	//
-	//	path = model.attributes._links.self[0].href.substr( manager.restApiRoot.length );
-	//	customizeId = 'rest_resource[' + path + ']';
-	//	if ( ! wp.customize.has( customizeId ) ) {
-	//		wp.customize.create( customizeId, JSON.stringify( model.toJSON() ) );
-	//	}
-	//}
 });

@@ -62,29 +62,6 @@ CustomizeRestResources.RestResourcesPaneManager = CustomizeRestResources.RestRes
 	},
 
 	/**
-	 * Create and add the setting for a given REST Resource.
-	 *
-	 * @param {object} resource
-	 * @returns {{wp.customize.Setting|null}}
-	 */
-	//ensureSetting: function( resource ) {
-	//	var manager = this, customizeId, setting;
-	//
-	//	customizeId = manager.getCustomizeId( resource );
-	//	if ( ! customizeId ) {
-	//		return null;
-	//	}
-	//	setting = wp.customize( customizeId );
-	//	if ( ! setting ) {
-	//		setting = wp.customize.create( customizeId, customizeId, JSON.stringify( resource ), {
-	//			transport: 'postMessage',
-	//			previewer: wp.customize.previewer
-	//		} );
-	//	}
-	//	return setting;
-	//},
-
-	/**
 	 * Notify the preview of a dirty setting.
 	 *
 	 * @param {wp.customize.Setting} setting

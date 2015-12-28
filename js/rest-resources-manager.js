@@ -81,64 +81,6 @@ CustomizeRestResources.RestResourcesManager = wp.customize.Class.extend({
 		};
 	},
 
-	//injectCollectionSync: function() {
-	//	// BaseCollection
-	//	var manager = this, BaseCollection, WPApiBaseModel, originalCollectionInitialize, originalModelInitialize;
-	//
-	//	// These two are needed because the parent classes of WP API Backbone collections are currently private.
-	//	BaseCollection = _.first( _.values( wp.api.collections ) ).__super__.constructor;
-	//
-	//	originalCollectionInitialize = BaseCollection.prototype.initialize;
-	//	BaseCollection.prototype.initialize = function() {
-	//		var collection = this;
-	//
-	//		collection.on( 'add', function() {
-	//			console.info( 'added' )
-	//		} );
-	//
-	//		originalCollectionInitialize.apply( collection, arguments );
-	//	};
-	//
-	//
-	//	return;
-	//
-	//	console.info( BaseCollection )
-	//
-	//	return;
-	//
-	//	WPApiBaseModel = _.first( _.values( wp.api.models ) ).__super__;
-	//
-	//
-	//
-	//
-	//	console.info( collection.__super__.initialize.toString() )
-	//	return;
-	//
-	//	_.each( wp.api.collections, function( collection ) {
-	//		console.info( collection.__super__ )
-	//
-	//		manager.customizeCollection( collection );
-	//	} );
-	//},
-
-	/**
-	 * Extend a WP API Backbone collection to integrate with the Customizer.
-	 *
-	 * @param {Backbone.Collection} collection
-	 */
-	//customizeCollection: function ( collection ) {
-	//	var oldInitialize = collection.prototype.initialize;
-	//	collection.prototype.initialize = function () {
-	//		var collection = this;
-	//		oldInitialize.apply( collection, arguments );
-	//		collection.on( 'add', function( model, collection, options ) {
-	//			console.info( 'added', model );
-	//			// @todo Make sure that
-	//		} );
-	//
-	//	};
-	//},
-
 	/**
 	 * Get query vars for Customize preview query.
 	 *
@@ -163,10 +105,6 @@ CustomizeRestResources.RestResourcesManager = wp.customize.Class.extend({
 			customized: JSON.stringify( customized )
 		};
 	},
-
-	//createSetting: function( path, resource ) {
-	//
-	//},
 
 	/**
 	 * Get the ID for the Customzier setting (or control).
