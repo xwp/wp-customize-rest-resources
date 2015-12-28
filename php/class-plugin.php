@@ -258,7 +258,7 @@ class Plugin extends Plugin_Base {
 	 * @return array Setting args.
 	 */
 	public function filter_dynamic_setting_args( $setting_args, $setting_id ) {
-		if ( preg_match( '#^rest_resource\[(?P<path>.*?)\]#', $setting_id ) ) {
+		if ( preg_match( '#^rest_resource\[(?P<route>.*?)\]#', $setting_id ) ) {
 			$setting_args['type'] = WP_Customize_REST_Resource_Setting::TYPE;
 			$setting_args['transport'] = 'postMessage';
 		}
