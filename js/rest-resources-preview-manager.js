@@ -39,7 +39,7 @@ CustomizeRestResources.RestResourcesPreviewManager = CustomizeRestResources.Rest
 				manager.previewActive.resolve();
 			} );
 
-			//jQuery( document ).ajaxSuccess( _.bind( manager.handleAjaxSuccess, manager ) );
+			jQuery( document ).ajaxSuccess( _.bind( manager.handleAjaxSuccess, manager ) );
 		});
 	},
 
@@ -49,18 +49,25 @@ CustomizeRestResources.RestResourcesPreviewManager = CustomizeRestResources.Rest
 	 * @param {array} args
 	 */
 	receiveSetting: function( args ) {
-		var id = args[0],
+		var manager = this,
+			id = args[0],
 			value = args[1],
-			matches;
-
-		// @todo Create the setting if it doesn't already exist.
+			resource,
+			matches,
+			models;
 
 		matches = id.match( /^rest_resource\[(.+?)]/ );
-		if ( matches ) {
-			console.info( matches[1], value );
+		if ( ! matches ) {
+			return;
 		}
 
-		// @todo Now we need to figure out which collection contains this resource, and then update it in place.
+		models = manager.settingModels[ id ];
+		if ( models ) {
+			resource = JSON.parse( value );
+			_.each( models, function( model ) {
+				model.set( resource );
+			} );
+		}
 	},
 
 	/**
