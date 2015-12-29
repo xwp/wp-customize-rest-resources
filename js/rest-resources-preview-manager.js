@@ -16,7 +16,28 @@ CustomizeRestResources.RestResourcesPreviewManager = CustomizeRestResources.Rest
 		var manager = this;
 		CustomizeRestResources.RestResourcesManager.prototype.initialize.call( manager, args );
 
-		manager.dirtySettings = [];
+		/**
+		 * Mapping of setting IDs to initial dirty setting value.
+		 *
+		 * This is used when a script in the preview attempts to make a request
+		 * to the REST API before the Customizer settings are initialized.
+		 *
+		 * @type {Object.<string, *>}
+		 */
+		manager.initialDirtySettingValues = args.initialDirtySettingValues || {};
+
+		/**
+		 * List of the IDs for settings that are dirty.
+		 *
+		 * @type {Array}
+		 */
+		manager.dirtySettings = _.keys( manager.initialDirtySettingValues );
+
+		/**
+		 * Deferred object for when pane sends active message.
+		 *
+		 * @type {jQuery.Deferred}
+		 */
 		manager.previewActive = jQuery.Deferred();
 
 		wp.customize.bind( 'preview-ready', function() {
@@ -135,6 +156,8 @@ CustomizeRestResources.RestResourcesPreviewManager = CustomizeRestResources.Rest
 		_.each( manager.dirtySettings, function( settingId ) {
 			if ( wp.customize.has( settingId ) ) {
 				customized[ settingId ] = wp.customize( settingId ).get();
+			} else if ( 'pending' === manager.previewActive.state() && manager.initialDirtySettingValues[ settingId ] ) {
+				customized[ settingId ] = manager.initialDirtySettingValues[ settingId ];
 			}
 		} );
 		return {

@@ -196,10 +196,22 @@ class Plugin extends Plugin_Base {
 		global $wp_customize;
 		wp_print_scripts( array( 'customize-rest-resources-preview-manager' ) );
 
+		$dirty_setting_values = array();
+		foreach ( array_keys( $wp_customize->unsanitized_post_values() ) as $setting_id ) {
+			if ( ! preg_match( '#^rest_resource\[#', $setting_id ) ) {
+				continue;
+			}
+			$setting = $wp_customize->get_setting( $setting_id );
+			if ( $setting ) {
+				$dirty_setting_values[ $setting_id ] = $setting->value();
+			}
+		}
+
 		$args = array(
 			'previewedTheme' => $wp_customize->get_stylesheet(),
 			'previewNonce' => wp_create_nonce( 'preview-customize_' . $wp_customize->get_stylesheet() ),
 			'restApiRoot' => get_rest_url(),
+			'initialDirtySettingValues' => $dirty_setting_values,
 		);
 		?>
 		<script>
