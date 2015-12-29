@@ -82,15 +82,11 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 	}
 
 	/**
-	 * Sanitize (and validate) an input.
+	 * Get instance of WP_REST_Server.
 	 *
-	 * @param string $value   The value to sanitize.
-	 * @param bool   $strict  Whether validation is being done. This is part of the proposed patch in in #34893.
-	 * @return string|array|null Null if an input isn't valid, otherwise the sanitized value.
+	 * @return \WP_REST_Server
 	 */
-	public function sanitize( $value, $strict = false ) {
-
-		unset( $setting );
+	public function get_rest_server() {
 		/**
 		 * REST Server.
 		 *
@@ -105,6 +101,18 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 			/** This filter is documented in wp-includes/rest-api.php */
 			do_action( 'rest_api_init', $wp_rest_server );
 		}
+		return $wp_rest_server;
+	}
+
+	/**
+	 * Sanitize (and validate) an input.
+	 *
+	 * @param string $value   The value to sanitize.
+	 * @param bool   $strict  Whether validation is being done. This is part of the proposed patch in in #34893.
+	 * @return string|array|null Null if an input isn't valid, otherwise the sanitized value.
+	 */
+	public function sanitize( $value, $strict = false ) {
+		unset( $setting );
 
 		// The customize_validate_settings action is part of the Customize Setting Validation plugin.
 		if ( ! $strict && doing_action( 'customize_validate_settings' ) ) {
@@ -118,7 +126,7 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 		$validity_errors = new \WP_Error();
 
 		add_filter( 'rest_dispatch_request', '__return_false' );
-		$wp_rest_server->dispatch( $this->request );
+		$this->get_rest_server()->dispatch( $this->request );
 		remove_filter( 'rest_dispatch_request', '__return_false' );
 
 		$data = json_decode( $this->request->get_body(), true );
@@ -213,13 +221,16 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 	/**
 	 * Return value for setting.
 	 *
-	 * @return string JSON.
+	 * Note that this is currently only returning the sanitized value for any
+	 * any setting that is dirty. There shouldn't be any REST Resource settings
+	 * registered via PHP that are not dirty. Non-dirty settings are registered
+	 * dynamically via JS.
+	 *
+	 * @todo Implement returning the underlying item value when it is not dirty.
+	 *
+	 * @return string|null JSON or null if item is not previewed.
 	 */
 	public function value() {
-		if ( ! $this->is_previewed ) {
-			// @todo Implement getting an item.
-			return null;
-		}
 		return $this->post_value();
 	}
 }
