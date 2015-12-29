@@ -32,6 +32,15 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 	public $route;
 
 	/**
+	 * Request that is initialized when sanitizing.
+	 *
+	 * @see WP_Customize_REST_Resource_Setting::sanitize()
+	 *
+	 * @var \WP_REST_Request
+	 */
+	public $request;
+
+	/**
 	 * Previewed settings by route.
 	 *
 	 * @var WP_Customize_REST_Resource_Setting[]
@@ -47,15 +56,20 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 	 * @throws Exception If the ID is in an invalid format.
 	 */
 	public function __construct( $manager, $id, $args ) {
+		if ( ! isset( $args['sanitize_callback'] ) ) {
+			$args['sanitize_callback'] = array( $this, 'sanitize' );
+		}
 		parent::__construct( $manager, $id, $args );
 		if ( ! preg_match( '#^rest_resource\[(?P<route>.+?)]$#', $id, $matches ) ) {
 			throw new Exception( 'Illegal setting id: ' . $id );
 		}
-		$this->route = $matches['route'];
+		$this->route = trim( $matches['route'], '/' );
 	}
 
 	/**
 	 * Flag this setting as one to be previewed.
+	 *
+	 * @return bool
 	 */
 	public function preview() {
 		$callback = array( __CLASS__, 'filter_rest_post_dispatch' );
@@ -63,20 +77,77 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 			add_filter( 'rest_post_dispatch', array( __CLASS__, 'filter_rest_post_dispatch' ), 10, 3 );
 		}
 		static::$previewed_routes[ $this->route ] = $this;
+		$this->is_previewed = true;
 		return true;
 	}
 
-
 	/**
-	 * Sanitize an input.
+	 * Sanitize (and validate) an input.
 	 *
-	 * @param string|array $value The value to sanitize.
+	 * @param string $value   The value to sanitize.
+	 * @param bool   $strict  Whether validation is being done. This is part of the proposed patch in in #34893.
 	 * @return string|array|null Null if an input isn't valid, otherwise the sanitized value.
 	 */
-	public function sanitize( $value ) {
-		// @todo This is going to be passed in as JSON string. We should instead get passed an array.
-		// @todo use \WP_REST_Controller::get_item_schema()
-		return $value;
+	public function sanitize( $value, $strict = false ) {
+
+		unset( $setting );
+		/**
+		 * REST Server.
+		 *
+		 * @var \WP_REST_Server $wp_rest_server
+		 */
+		global $wp_rest_server;
+		if ( empty( $wp_rest_server ) ) {
+			/** This filter is documented in wp-includes/rest-api.php */
+			$wp_rest_server_class = apply_filters( 'wp_rest_server_class', 'WP_REST_Server' );
+			$wp_rest_server = new $wp_rest_server_class();
+
+			/** This filter is documented in wp-includes/rest-api.php */
+			do_action( 'rest_api_init', $wp_rest_server );
+		}
+
+		// The customize_validate_settings action is part of the Customize Setting Validation plugin.
+		if ( ! $strict && doing_action( 'customize_validate_settings' ) ) {
+			$strict = true;
+		}
+
+		$route = '/' . ltrim( $this->route, '/' );
+		$this->request = new \WP_REST_Request( 'PUT', $route );
+		$this->request->set_body( $value );
+
+		$validity_errors = new \WP_Error();
+
+		add_filter( 'rest_dispatch_request', '__return_false' );
+		$wp_rest_server->dispatch( $this->request );
+		remove_filter( 'rest_dispatch_request', '__return_false' );
+
+		$data = json_decode( $this->request->get_body(), true );
+		$attributes = $this->request->get_attributes();
+		$args = $attributes['args'];
+		foreach ( array_keys( $data ) as $key ) {
+			if ( ! isset( $args[ $key ] ) || ! isset( $data[ $key ] ) ) {
+				continue;
+			}
+			$value = $data[ $key ];
+			if ( isset( $args[ $key ]['sanitize_callback'] ) ) {
+				$value = call_user_func( $args[ $key ]['sanitize_callback'], $value, $this->request, $key );
+			}
+			if ( $strict && isset( $args[ $key ]['validate_callback'] ) ) {
+				$validity = call_user_func( $args[ $key ]['validate_callback'], $value, $this->request, $key );
+				if ( is_wp_error( $validity ) ) {
+					foreach ( $validity->errors as $code => $message ) {
+						$validity_errors->add( $code, $message, $validity->get_error_data( $code ) );
+					}
+				}
+			}
+			$data[ $key ] = $value;
+		}
+
+		if ( count( $validity_errors->errors ) > 0 ) {
+			return $validity_errors;
+		}
+
+		return wp_json_encode( $data );
 	}
 
 	/**
@@ -131,20 +202,24 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 			return $resource;
 		}
 		$setting = static::$previewed_routes[ $route ];
-		$post_value = $setting->post_value();
-		if ( null !== $post_value ) {
-			// @todo We should pass around JSON objects not JSON strings. Running sanitize on a JSON string is not ideal.
-			$resource = json_decode( $post_value, true );
+		$value = $setting->post_value();
+		if ( null !== $value && ! is_wp_error( $value ) ) {
+			// @todo Should pass around JSON objects not JSON strings. Running sanitize on a JSON string is not ideal.
+			$resource = json_decode( $value, true );
 		}
 		return $resource;
 	}
 
 	/**
-	 * @todo Implement this to get the value from the REST API plugin.
+	 * Return value for setting.
+	 *
+	 * @return string JSON.
 	 */
 	public function value() {
-		return '{TODO}';
-		return parent::value();
+		if ( ! $this->is_previewed ) {
+			// @todo Implement getting an item.
+			return null;
+		}
+		return $this->post_value();
 	}
-
 }
