@@ -47,6 +47,15 @@ CustomizeRestResources.RestResourceControl = wp.customize.Control.extend({
 		element.sync( control.setting );
 		element.set( control.setting() || '{}' );
 
+		/**
+		 * Prevent control from being deactivated when the preview refreshes.
+		 *
+		 * @returns {boolean}
+		 */
+		control.active.validate = function () {
+			return true;
+		};
+
 		control.setting.bind( function( newValue ) {
 			var setting = this;
 			try {
