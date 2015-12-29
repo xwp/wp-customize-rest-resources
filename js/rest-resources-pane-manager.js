@@ -86,38 +86,6 @@ CustomizeRestResources.RestResourcesPaneManager = CustomizeRestResources.RestRes
 	},
 
 	/**
-	 * Ensure there is a Customizer setting for the supplied REST resource.
-	 */
-	ensureResourceSettingAndControl: function( resource ) {
-
-		console.info( 'ensureResourceSettingAndControl', resource );
-		return;
-
-		var manager = this, path, customizeId;
-		path = resource._links.self[0].href.substr( manager.restApiRoot.length );
-		customizeId = 'rest_resource[' + path + ']';
-		if ( ! wp.customize.has( customizeId ) ) {
-			// @todo Should we store the JSON string or the JS object in the setting?
-			wp.customize.create( customizeId, customizeId, JSON.stringify( resource ), {
-				transport: 'postMessage',
-				previewer: wp.customize.previewer
-			} );
-		}
-
-		if ( ! wp.customize.control.has( customizeId ) ) {
-			wp.customize.control.add( customizeId, new CustomizeRestResources.RestResourceControl( customizeId, {
-				params: {
-					settings: {
-						'default': customizeId
-					},
-					section: 'rest_resources',
-					priority: wp.customize.section( 'rest_resources' ).controls().length + 1
-				}
-			} ) );
-		}
-	},
-
-	/**
 	 * Get query vars for Customize preview query.
 	 *
 	 * @returns {{
