@@ -315,7 +315,7 @@ class Plugin extends Plugin_Base {
 	 */
 	public function remove_customize_signature() {
 		global $wp_customize;
-		if ( ! is_customize_preview() || empty( $wp_customize ) ) {
+		if ( ! is_customize_preview() || empty( $wp_customize ) || ! defined( 'REST_REQUEST' ) ) {
 			return;
 		}
 		$wp_customize->remove_preview_signature();
