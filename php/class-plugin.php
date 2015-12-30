@@ -48,7 +48,80 @@ class Plugin extends Plugin_Base {
 		add_action( 'customize_dynamic_setting_class', array( $this, 'filter_dynamic_setting_class' ), 10, 3 );
 		add_action( 'rest_api_init', array( $this, 'remove_customize_signature' ) );
 
+		add_filter( 'rest_pre_dispatch', array( $this, 'use_edit_context_for_requests' ), 10, 3 );
+		add_filter( 'rest_post_dispatch', array( $this, 'export_context_with_response' ), 100, 3 );
+
+		// @todo Inject a new field into the response that indicates whether the
+
 		add_action( 'customize_controls_print_footer_scripts', array( $this, 'print_templates' ) );
+	}
+
+	/**
+	 * Attempt to upgrade all Customizer REST API requests to use the edit context.
+	 *
+	 * @param mixed            $result  Response to replace the requested version with. Can be anything
+	 *                                  a normal endpoint can return, or null to not hijack the request.
+	 * @param \WP_REST_Server  $server  Server instance.
+	 * @param \WP_REST_Request $request Original request used to generate the response.
+	 * @return \WP_REST_Response Dispatch result if successful.
+	 */
+	public function use_edit_context_for_requests( $result, $server, $request ) {
+		if ( null !== $result || 'edit' === $request['context'] || ! is_customize_preview() ) {
+			return $result;
+		}
+
+		$edit_request = clone $request;
+		$edit_request['context'] = 'edit';
+		$edit_result = $server->dispatch( $edit_request );
+
+		if ( $edit_result->is_error() ) {
+			/*
+			 * Return the original $result to prevent the short-circuiting of the
+			 * request dispatching since it is found to result in an error, likely
+			 * a rest_forbidden_context one.
+			 */
+			return $result;
+		}
+
+		/*
+		 * Now set the context on the original request object to be edit so that
+		 * it will match the context that was actually used, and so that the
+		 * context will be available in the rest_post_dispatch filter.
+		 */
+		$request['context'] = 'edit';
+		return $edit_result;
+	}
+
+	/**
+	 * Make sure that the context for the request is made known so we know whether it can be customized.
+	 *
+	 * @param \WP_HTTP_Response $response Result to send to the client. Usually a WP_REST_Response.
+	 * @param \WP_REST_Server   $server   Server instance.
+	 * @param \WP_REST_Request  $request  Request used to generate the response.
+	 * @return \WP_HTTP_Response Response.
+	 */
+	public function export_context_with_response( $response, $server, $request ) {
+		unset( $server );
+		if ( 'edit' === $request['context'] ) {
+			$response->header( 'X-Customize-REST-Resources-Context', $request['context'] );
+
+			// The following injects a context-editable flag to indicate whether it should be made available to the Customizer.
+			// @todo We could just rely on the ajaxSuccess to ensureSettings.
+			$data = $response->get_data();
+			if ( isset( $data[0] ) ) {
+				$data = array_map(
+					function( $data ) use ( $request ) {
+						$data['_customize_context'] = $request['context'];
+						return $data;
+					},
+					$data
+				);
+			} else {
+				$data['_customize_context'] = $request['context'];
+			}
+			$response->set_data( $data );
+		}
+		return $response;
 	}
 
 	/**
