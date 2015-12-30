@@ -10,12 +10,6 @@ Template plugin for scaffolding WordPress plugins at XWP.
 
 == Description ==
 
-Template plugin for scaffolding WordPress plugins at XWP.
+Note that this will not work with JSONP requests.
 
-Use the [`init-plugin.sh`](init-plugin.sh) script on your system to pull down this repo and make the necessary replacements via:
-
-```bash
-./init-plugin.sh "Hello World"
-```
-
-This will create a plugin `hello-world` one level up from the current directory. The `init-plugin.sh` script will be removed from the scaffolded plugin.
+Goal is to allow anything you write for the REST API to automatically be made available in the Customizer.
