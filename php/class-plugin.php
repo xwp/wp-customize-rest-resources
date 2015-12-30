@@ -49,9 +49,7 @@ class Plugin extends Plugin_Base {
 		add_action( 'rest_api_init', array( $this, 'remove_customize_signature' ) );
 
 		add_filter( 'rest_pre_dispatch', array( $this, 'use_edit_context_for_requests' ), 10, 3 );
-		add_filter( 'rest_post_dispatch', array( $this, 'export_context_with_response' ), 100, 3 );
-
-		// @todo Inject a new field into the response that indicates whether the
+		add_filter( 'rest_post_dispatch', array( $this, 'export_context_with_response' ), 10, 3 );
 
 		add_action( 'customize_controls_print_footer_scripts', array( $this, 'print_templates' ) );
 	}
@@ -104,22 +102,6 @@ class Plugin extends Plugin_Base {
 		unset( $server );
 		if ( 'edit' === $request['context'] ) {
 			$response->header( 'X-Customize-REST-Resources-Context', $request['context'] );
-
-			// The following injects a context-editable flag to indicate whether it should be made available to the Customizer.
-			// @todo We could just rely on the ajaxSuccess to ensureSettings.
-			$data = $response->get_data();
-			if ( isset( $data[0] ) ) {
-				$data = array_map(
-					function( $data ) use ( $request ) {
-						$data['_customize_context'] = $request['context'];
-						return $data;
-					},
-					$data
-				);
-			} else {
-				$data['_customize_context'] = $request['context'];
-			}
-			$response->set_data( $data );
 		}
 		return $response;
 	}
