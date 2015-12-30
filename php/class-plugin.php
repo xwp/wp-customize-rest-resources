@@ -57,6 +57,8 @@ class Plugin extends Plugin_Base {
 	/**
 	 * Attempt to upgrade all Customizer REST API requests to use the edit context.
 	 *
+	 * @todo Make sure this works with prefilled Backbone collections.
+	 *
 	 * @param mixed            $result  Response to replace the requested version with. Can be anything
 	 *                                  a normal endpoint can return, or null to not hijack the request.
 	 * @param \WP_REST_Server  $server  Server instance.
