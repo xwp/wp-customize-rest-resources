@@ -169,21 +169,22 @@ CustomizeRestResources.RestResourcesManager = wp.customize.Class.extend({
 		 * Create the Customizer setting for a given model and keep track of the
 		 * model instances created for a given resource (and setting).
 		 *
+		 * Note that we have to cal ensureSetting() in this instance for the
+		 * sake of Backbone collections/models that are pre-filled on init.
+		 *
 		 * @this Backbone.Model
 		 */
 		registerSelf = function() {
-			var model = this, customizeId = manager.getCustomizeId( model.attributes );
-			if ( ! customizeId ) {
-				return;
-			}
-			wp.customize( customizeId, function( setting ) {
+			var model = this, setting, customizeId = manager.getCustomizeId( model.attributes );
+			if ( customizeId ) {
+				setting = manager.ensureSetting( model.toJSON() );
 				if ( ! manager.settingModels[ setting.id ] ) {
 					manager.settingModels[ setting.id ] = [];
 				}
 				if ( -1 === manager.settingModels[ setting.id ].indexOf( model ) ) {
 					manager.settingModels[ setting.id ].push( model );
 				}
-			} );
+			}
 		};
 
 		// Defer registering the model until it is saved.
