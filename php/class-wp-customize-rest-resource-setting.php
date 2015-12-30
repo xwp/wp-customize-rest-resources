@@ -74,7 +74,7 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 	public function preview() {
 		$callback = array( __CLASS__, 'filter_rest_post_dispatch' );
 		if ( ! has_filter( 'rest_post_dispatch', $callback ) ) {
-			add_filter( 'rest_post_dispatch', array( __CLASS__, 'filter_rest_post_dispatch' ), 10, 3 );
+			add_filter( 'rest_post_dispatch', $callback, 20, 3 );
 		}
 		static::$previewed_routes[ $this->route ] = $this;
 		$this->is_previewed = true;
@@ -163,20 +163,25 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 	 *
 	 * Allows modification of the response before returning.
 	 *
-	 * @param \WP_HTTP_Response $result  Result to send to the client. Usually a WP_REST_Response.
+	 * @param \WP_HTTP_Response $result  Result to send to the client. Usually a \WP_REST_Response.
 	 * @param \WP_REST_Server   $server  Server instance.
 	 * @param \WP_REST_Request  $request Request used to generate the response.
 	 * @return \WP_REST_Response
 	 */
 	static public function filter_rest_post_dispatch( $result, $server, $request ) {
-		unset( $server, $request ); // @todo Should we be looking at this?
+		unset( $server, $request );
 		$data = $result->get_data();
 
-		if ( isset( $data['_links'] ) ) {
-			$data = static::filter_single_resource( $data );
-		} else {
+		$links = null;
+		if ( $result instanceof \WP_REST_Response ) {
+			$links = $result->get_links();
+		}
+
+		if ( ! empty( $links ) ) {
+			$data = static::filter_single_resource( $data, $links );
+		} else if ( isset( $data[0] ) ) {
 			$data = array_map(
-				array( __CLASS__, 'filter_single_resource' ), // @todo Should this be static?
+				array( __CLASS__, 'filter_single_resource' ),
 				$data
 			);
 		}
@@ -189,16 +194,20 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 	 * Filter single resource.
 	 *
 	 * @param array $resource Resource.
+	 * @param array $links    Links.
 	 *
 	 * @return array Filtered resource.
 	 * @throws Exception When unexpected condition occurs.
 	 */
-	static public function filter_single_resource( $resource ) {
-		if ( ! isset( $resource['_links']['self'][0]['href'] ) ) {
+	static public function filter_single_resource( $resource, $links = null ) {
+		if ( empty( $links ) && isset( $resource['_links'] ) ) {
+			$links = $resource['_links'];
+		}
+		if ( ! isset( $links['self'][0]['href'] ) ) {
 			return $resource;
 		}
 
-		$self_href = $resource['_links']['self'][0]['href'];
+		$self_href = $links['self'][0]['href'];
 		$base_rest_url = rest_url();
 		if ( strpos( $self_href, $base_rest_url ) !== 0 ) {
 			throw new Exception( "Unable to locate $base_rest_url in $self_href" );
