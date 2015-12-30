@@ -163,30 +163,27 @@ CustomizeRestResources.RestResourcesManager = wp.customize.Class.extend({
 	 * @param {function} model.toJSON
 	 */
 	initializeBackboneModel: function( model ) {
-		var manager = this, setting, registerSelf;
+		var manager = this, registerSelf;
 
 		/**
 		 * Create the Customizer setting for a given model and keep track of the
 		 * model instances created for a given resource (and setting).
 		 *
 		 * @this Backbone.Model
-		 * @returns {boolean}
 		 */
 		registerSelf = function() {
-			var model = this;
-			if ( model.attributes._links && model.attributes._links.self ) {
-				setting = manager.ensureSetting( model.toJSON() );
-				if ( setting ) {
-					if ( ! manager.settingModels[ setting.id ] ) {
-						manager.settingModels[ setting.id ] = [];
-					}
-					if ( -1 === manager.settingModels[ setting.id ].indexOf( model ) ) {
-						manager.settingModels[ setting.id ].push( model );
-					}
-					return true;
-				}
+			var model = this, customizeId = manager.getCustomizeId( model.attributes );
+			if ( ! customizeId ) {
+				return;
 			}
-			return false;
+			wp.customize( customizeId, function( setting ) {
+				if ( ! manager.settingModels[ setting.id ] ) {
+					manager.settingModels[ setting.id ] = [];
+				}
+				if ( -1 === manager.settingModels[ setting.id ].indexOf( model ) ) {
+					manager.settingModels[ setting.id ].push( model );
+				}
+			} );
 		};
 
 		// Defer registering the model until it is saved.
@@ -214,21 +211,22 @@ CustomizeRestResources.RestResourcesManager = wp.customize.Class.extend({
 			return;
 		}
 
-		restMethod = options.type;
+		restMethod = options.type.toUpperCase();
 
-		if ( 'GET' !== options.type && 'HEAD' !== options.type && 'undefined' !== typeof console.warn ) {
-			throw new Error( 'Attempted ' + options.type + ' request for ' + options.url + ' when in Customizer. Write interception is not yet implemented.' );
+		if ( 'GET' !== restMethod && 'HEAD' !== restMethod && 'undefined' !== typeof console.warn ) {
+			throw new Error( 'Attempted ' + restMethod + ' request for ' + options.url + ' when in Customizer. Write interception is not yet implemented.' );
 		}
 
 		// Customizer currently requires POST requests, so use override (force Backbone.emulateHTTP).
-		if ( 'POST' !== options.type ) {
-			xhr.setRequestHeader( 'X-HTTP-Method-Override', options.type );
+		if ( 'POST' !== restMethod ) {
+			xhr.setRequestHeader( 'X-HTTP-Method-Override', restMethod );
 			options.type = 'POST';
 		}
 
 		// Eliminate context param because we will be adding edit context.
-		options.data = options.data.replace( /(^|&)context=\w+(?=$|&)/, '' );
-		options.data += '&context=edit';
+		if ( ! options.data ) {
+			options.data = '';
+		}
 
 		if ( options.data && 'GET' === restMethod ) {
 			/*

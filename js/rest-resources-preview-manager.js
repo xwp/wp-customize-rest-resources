@@ -127,6 +127,12 @@ CustomizeRestResources.RestResourcesPreviewManager = CustomizeRestResources.Rest
 		if ( 0 !== options.url.indexOf( manager.restApiRoot ) ) {
 			return;
 		}
+
+		// Abort syncing ensuring resources if the REST resource is not editable.
+		if ( 'edit' !== xhr.getResponseHeader( 'X-Customize-REST-Resources-Context' ) ) {
+			return;
+		}
+
 		if ( _.isArray( data ) ) {
 			resources = data.slice();
 		} else {
