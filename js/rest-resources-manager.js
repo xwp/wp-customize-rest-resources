@@ -226,24 +226,29 @@ CustomizeRestResources.RestResourcesManager = wp.customize.Class.extend({
 			options.type = 'POST';
 		}
 
-		// Make sure the query vars for the REST API persist in GET (since REST API explicitly look at $_GET['filter']).
-		if ( options.url.indexOf( '?' ) === -1 ) {
-			options.url += '?';
-		} else {
-			options.url += '&';
-		}
+		// Eliminate context param because we will be adding edit context.
+		options.data = options.data.replace( /(^|&)context=\w+(?=$|&)/, '' );
+		options.data += '&context=edit';
+
 		if ( options.data && 'GET' === restMethod ) {
 			/*
+			 * Make sure the query vars for the REST API persist in GET (since
+			 * REST API explicitly look at $_GET['filter']).
 			 * We have to make sure the REST query vars are added as GET params
 			 * when the method is GET as otherwise they won't be parsed properly.
 			 * The issue lies in \WP_REST_Request::get_parameter_order() which
 			 * only is looking at \WP_REST_Request::$method instead of $_SERVER['REQUEST_METHOD'].
 			 * @todo Improve \WP_REST_Request::get_parameter_order() to be more aware of X-HTTP-Method-Override
 			 */
+			if ( options.url.indexOf( '?' ) === -1 ) {
+				options.url += '?';
+			} else {
+				options.url += '&';
+			}
 			options.url += options.data;
 		}
 
-		// Include Customizer query vars in preview request POST data.
+		// Add Customizer post data.
 		if ( options.data ) {
 			options.data += '&';
 		}
