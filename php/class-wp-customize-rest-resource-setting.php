@@ -76,6 +76,10 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 		if ( ! has_filter( 'rest_post_dispatch', $callback ) ) {
 			add_filter( 'rest_post_dispatch', $callback, 20, 3 );
 		}
+		$callback = array( __CLASS__, 'filter_customize_rest_server_response_data' );
+		if ( ! has_filter( 'customize_rest_server_response_data', $callback ) ) {
+			add_filter( 'customize_rest_server_response_data', $callback );
+		}
 		static::$previewed_routes[ $this->route ] = $this;
 		$this->is_previewed = true;
 		return true;
@@ -159,9 +163,32 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 	}
 
 	/**
-	 * Filter the API response.
+	 * Filter the API response to inject the Customized REST resources.
 	 *
-	 * Allows modification of the response before returning.
+	 * @param array $data Data.
+	 * @return array Filtered data.
+	 */
+	static public function filter_customize_rest_server_response_data( $data ) {
+		if ( isset( $data['_links'] ) ) {
+			$data = static::filter_single_resource( $data );
+		} else if ( isset( $data[0] ) ) {
+			$data = array_map(
+				function( $item ) {
+					return static::filter_single_resource( $item );
+				},
+				$data
+			);
+		}
+		return $data;
+	}
+
+	/**
+	 * Fallback filter the API response to inject the Customized REST resources.
+	 *
+	 * This filter cannot apply on embedded resources since they get injected
+	 * after the rest_post_dispatch filter is called. For this reason, it serves
+	 * as a fallback if the customize_rest_server_response_data filter can't be
+	 * used in our WP_REST_Server subclass.
 	 *
 	 * @param \WP_HTTP_Response $result  Result to send to the client. Usually a \WP_REST_Response.
 	 * @param \WP_REST_Server   $server  Server instance.
@@ -169,7 +196,12 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 	 * @return \WP_REST_Response
 	 */
 	static public function filter_rest_post_dispatch( $result, $server, $request ) {
-		unset( $server, $request );
+		// Skip filtering on rest_post_dispatch if our server subclass is used.
+		if ( $server instanceof WP_Customize_REST_Server ) {
+			return $result;
+		}
+
+		unset( $request );
 		$data = $result->get_data();
 
 		$links = null;
@@ -200,6 +232,16 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 	 * @throws Exception When unexpected condition occurs.
 	 */
 	static public function filter_single_resource( $resource, $links = null ) {
+
+		// Apply preview to embedded resources.
+		if ( isset( $resource['_embedded'] ) ) {
+			foreach ( $resource['_embedded'] as &$embeddeds ) {
+				foreach ( $embeddeds as &$embedded ) {
+					$embedded = static::filter_single_resource( $embedded );
+				}
+			}
+		}
+
 		if ( empty( $links ) && isset( $resource['_links'] ) ) {
 			$links = $resource['_links'];
 		}
@@ -221,7 +263,6 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 		$setting = static::$previewed_routes[ $route ];
 		$value = $setting->post_value();
 		if ( null !== $value && ! is_wp_error( $value ) ) {
-			// @todo Should pass around JSON objects not JSON strings. Running sanitize on a JSON string is not ideal.
 			$resource = json_decode( $value, true );
 		}
 		return $resource;

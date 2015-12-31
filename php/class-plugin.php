@@ -48,10 +48,28 @@ class Plugin extends Plugin_Base {
 		add_action( 'customize_dynamic_setting_class', array( $this, 'filter_dynamic_setting_class' ), 10, 3 );
 		add_action( 'rest_api_init', array( $this, 'remove_customize_signature' ) );
 
+		add_filter( 'wp_rest_server_class', array( $this, 'filter_wp_rest_server_class' ), 100 );
 		add_filter( 'rest_pre_dispatch', array( $this, 'use_edit_context_for_requests' ), 10, 3 );
 		add_filter( 'rest_post_dispatch', array( $this, 'export_context_with_response' ), 10, 3 );
 
 		add_action( 'customize_controls_print_footer_scripts', array( $this, 'print_templates' ) );
+	}
+
+	/**
+	 * Filter the WP_REST_Server to be our Customizer subclass.
+	 *
+	 * @param string $class Class name.
+	 * @return string
+	 */
+	public function filter_wp_rest_server_class( $class ) {
+		if ( is_customize_preview() ) {
+			if ( 'WP_REST_Server' !== $class ) {
+				trigger_error( esc_html( sprintf( 'Cannot filter wp_rest_server_class because $class is not "WP_REST_Server" (got "%s" instead).', $class ) ), \E_USER_WARNING );
+			} else {
+				$class = __NAMESPACE__ . '\\WP_Customize_REST_Server';
+			}
+		}
+		return $class;
 	}
 
 	/**
@@ -295,6 +313,9 @@ class Plugin extends Plugin_Base {
 			'title' => __( 'REST Resources', 'customize-rest-resources' ),
 		) );
 		$wp_customize->add_section( $section );
+
+		// @todo Create a panel with multiple sections correspondng to each endpoint.
+		// @todo Mirror this in JS.
 
 		$i = 0;
 		foreach ( $wp_customize->settings() as $setting ) {
