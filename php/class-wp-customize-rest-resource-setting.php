@@ -88,6 +88,8 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 	/**
 	 * Get instance of WP_REST_Server.
 	 *
+	 * @todo This should be part of Core.
+	 *
 	 * @return \WP_REST_Server
 	 */
 	public function get_rest_server() {
@@ -233,15 +235,6 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 	 */
 	static public function filter_single_resource( $resource, $links = null ) {
 
-		// Apply preview to embedded resources.
-		if ( isset( $resource['_embedded'] ) ) {
-			foreach ( $resource['_embedded'] as &$embeddeds ) {
-				foreach ( $embeddeds as &$embedded ) {
-					$embedded = static::filter_single_resource( $embedded );
-				}
-			}
-		}
-
 		if ( empty( $links ) && isset( $resource['_links'] ) ) {
 			$links = $resource['_links'];
 		}
@@ -265,6 +258,16 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 		if ( null !== $value && ! is_wp_error( $value ) ) {
 			$resource = json_decode( $value, true );
 		}
+
+		// Apply preview to embedded resources.
+		if ( isset( $resource['_embedded'] ) ) {
+			foreach ( $resource['_embedded'] as &$embeddeds ) {
+				foreach ( $embeddeds as &$embedded ) {
+					$embedded = static::filter_single_resource( $embedded );
+				}
+			}
+		}
+
 		return $resource;
 	}
 
