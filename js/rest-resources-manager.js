@@ -164,22 +164,7 @@ CustomizeRestResources.RestResourcesManager = wp.customize.Class.extend({
 	 * @param {function} originalModelInitialize
 	 */
 	initializeBackboneModel: function( model, attributes, options, originalModelInitialize ) {
-		var manager = this, existingSetting, registerSelf, customizeId;
-
-		customizeId = manager.getCustomizeId( attributes );
-		existingSetting = wp.customize( customizeId );
-
-		/*
-		 * Override the incoming model attributes with any Customizer settings
-		 * already in memory.
-		 *
-		 * @todo This should be handled automatically in the Customizer response.
-		 */
-		if ( existingSetting ) {
-			// @todo Only dirty settings?
-			model.set( model.parse( JSON.parse( existingSetting.get() ) ) );
-			// @todo Remove this now that we have WP_Customize_REST_Server
-		}
+		var manager = this, registerSelf;
 
 		originalModelInitialize.call( model, attributes, options );
 
