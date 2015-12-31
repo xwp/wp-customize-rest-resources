@@ -62,7 +62,6 @@ CustomizeRestResources.RestResourcesManager = wp.customize.Class.extend({
 		jQuery.ajaxPrefilter( 'json', _.bind( manager.prefilterAjax, manager ) );
 
 		manager.injectModelSync();
-		//manager.injectCollectionSync();
 	},
 
 	/**
@@ -74,10 +73,9 @@ CustomizeRestResources.RestResourcesManager = wp.customize.Class.extend({
 		WPApiBaseModel = _.first( _.values( wp.api.models ) ).__super__.constructor;
 
 		originalModelInitialize = WPApiBaseModel.prototype.initialize;
-		WPApiBaseModel.prototype.initialize = function() {
+		WPApiBaseModel.prototype.initialize = function( attributes, options ) {
 			var model = this;
-			originalModelInitialize.apply( model, arguments );
-			manager.initializeBackboneModel.call( manager, model, arguments );
+			manager.initializeBackboneModel.call( manager, model, attributes, options, originalModelInitialize );
 		};
 	},
 
@@ -116,7 +114,7 @@ CustomizeRestResources.RestResourcesManager = wp.customize.Class.extend({
 	 */
 	getCustomizeId: function( resource ) {
 		var manager = this, path, customizeId;
-		if ( ! resource._links.self ) {
+		if ( ! resource._links || ! resource._links.self ) {
 			return null;
 		}
 
@@ -161,9 +159,29 @@ CustomizeRestResources.RestResourcesManager = wp.customize.Class.extend({
 	 *
 	 * @param {Backbone.Model} model
 	 * @param {function} model.toJSON
+	 * @param {object} attributes
+	 * @param {object} options
+	 * @param {function} originalModelInitialize
 	 */
-	initializeBackboneModel: function( model ) {
-		var manager = this, registerSelf;
+	initializeBackboneModel: function( model, attributes, options, originalModelInitialize ) {
+		var manager = this, existingSetting, registerSelf, customizeId;
+
+		customizeId = manager.getCustomizeId( attributes );
+		existingSetting = wp.customize( customizeId );
+
+		/*
+		 * Override the incoming model attributes with any Customizer settings
+		 * already in memory.
+		 *
+		 * @todo This should be handled automatically in the Customizer response.
+		 */
+		if ( existingSetting ) {
+			// @todo Only dirty settings?
+			model.set( model.parse( JSON.parse( existingSetting.get() ) ) );
+			// @todo Remove this now that we have WP_Customize_REST_Server
+		}
+
+		originalModelInitialize.call( model, attributes, options );
 
 		/**
 		 * Create the Customizer setting for a given model and keep track of the
