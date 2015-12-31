@@ -86,7 +86,7 @@ CustomizeRestResources.RestResourcesPreviewManager = CustomizeRestResources.Rest
 		if ( models ) {
 			resource = JSON.parse( value );
 			_.each( models, function( model ) {
-				model.set( resource );
+				model.set( model.parse( resource ) );
 			} );
 		}
 	},
