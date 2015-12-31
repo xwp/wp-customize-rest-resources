@@ -85,6 +85,19 @@ CustomizeRestResources.RestResourcesPreviewManager = CustomizeRestResources.Rest
 		models = manager.settingModels[ id ];
 		if ( models ) {
 			resource = JSON.parse( value );
+
+			// Make sure that any embedded resources get updated to reflect any dirty.
+			if ( resource._embedded ) {
+				_.each( resource._embedded, function( embeddeds ) {
+					_.each( embeddeds, function( embed ) {
+						var customizeId = manager.getCustomizeId( embed );
+						if ( customizeId && -1 !== manager.dirtySettings.indexOf( customizeId ) && wp.customize.has( customizeId ) ) {
+							_.extend( embed, JSON.parse( wp.customize( customizeId ).get() ) );
+						}
+					} );
+				} );
+			}
+
 			_.each( models, function( model ) {
 				model.set( model.parse( resource ) );
 			} );
