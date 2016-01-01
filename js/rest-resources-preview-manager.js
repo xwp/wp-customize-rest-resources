@@ -73,7 +73,6 @@ CustomizeRestResources.RestResourcesPreviewManager = CustomizeRestResources.Rest
 		var manager = this,
 			id = args[0],
 			value = args[1],
-			resource,
 			matches,
 			models;
 
@@ -84,22 +83,33 @@ CustomizeRestResources.RestResourcesPreviewManager = CustomizeRestResources.Rest
 
 		models = manager.settingModels[ id ];
 		if ( models ) {
-			resource = JSON.parse( value );
-
-			// Make sure that any embedded resources get updated to reflect any dirty.
-			if ( resource._embedded ) {
-				_.each( resource._embedded, function( embeddeds ) {
-					_.each( embeddeds, function( embed ) {
-						var customizeId = manager.getCustomizeId( embed );
-						if ( customizeId && -1 !== manager.dirtySettings.indexOf( customizeId ) && wp.customize.has( customizeId ) ) {
-							_.extend( embed, JSON.parse( wp.customize( customizeId ).get() ) );
-						}
-					} );
-				} );
-			}
 
 			_.each( models, function( model ) {
-				model.set( model.parse( resource ) );
+				var resource = JSON.parse( value );
+
+				// Make sure that any embedded resources get updated to reflect any dirty.
+				if ( resource._embedded ) {
+					_.each( resource._embedded, function( embeddeds ) {
+						_.each( embeddeds, function( embed ) {
+							var customizeId = manager.getCustomizeId( embed );
+							if ( customizeId && -1 !== manager.dirtySettings.indexOf( customizeId ) && wp.customize.has( customizeId ) ) {
+								_.extend( embed, JSON.parse( wp.customize( customizeId ).get() ) );
+							}
+						} );
+					} );
+				}
+
+				resource = model.parse( resource );
+
+				// Handle case where Customizer setting lacks _embedded
+				// @todo A more elegant solution is needed here.
+				_.each( model.attributes, function( value, key ) {
+					if ( value instanceof Backbone.Model && value.id === resource[ key ].id ) {
+						resource[ key ] = value;
+					}
+				} );
+
+				model.set( resource );
 			} );
 		}
 	},
