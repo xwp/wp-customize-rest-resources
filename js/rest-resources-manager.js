@@ -138,6 +138,10 @@ CustomizeRestResources.RestResourcesManager = wp.customize.Class.extend({
 		}
 		setting = wp.customize( customizeId );
 		if ( ! setting ) {
+			// Prevent embedded resources from being included in Customizer settings.
+			resource = _.clone( resource );
+			delete resource._embedded;
+
 			if ( wp.customize.Setting ) {
 				// This will run in the Customizer pane.
 				setting = new wp.customize.Setting( customizeId, JSON.stringify( resource ), {
