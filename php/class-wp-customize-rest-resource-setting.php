@@ -280,10 +280,55 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 	 * dynamically via JS.
 	 *
 	 * @todo Implement returning the underlying item value when it is not dirty.
+	 * @todo Strip out embedded from being included?
 	 *
 	 * @return string|null JSON or null if item is not previewed.
 	 */
 	public function value() {
-		return $this->post_value();
+		if ( isset( $this->updated_value ) ) {
+			return $this->updated_value;
+		} else {
+			return $this->post_value();
+		}
+	}
+
+	/**
+	 * Saved response from update.
+	 *
+	 * @todo This is temporarily needed until value() implements the dispatching of the GET request.
+	 *
+	 * @see \CustomizeRESTResources\WP_Customize_REST_Resource_Setting::update()
+	 *
+	 * @var string
+	 */
+	protected $updated_value;
+
+	/**
+	 * Save the value of the setting.
+	 *
+	 * @param string $value The value to update.
+	 *
+	 * @return bool The result of saving the value.
+	 */
+	protected function update( $value ) {
+		$wp_rest_server = $this->get_rest_server();
+		$route = '/' . ltrim( $this->route, '/' );
+		$rest_request = new \WP_REST_Request( 'PUT', $route );
+		$rest_request->set_header( 'content-type', 'application/json' );
+		$rest_request->set_body( $value );
+		$rest_response = $wp_rest_server->dispatch( $rest_request );
+
+		if ( $rest_response->is_error() ) {
+			add_filter( 'customize_save_response', function ( $response ) use ( $rest_response ) {
+				if ( ! isset( $response['customize_rest_resources_save_errors'] ) ) {
+					$response['customize_rest_resources_save_errors'] = array();
+				}
+				$response['customize_rest_resources_save_errors'][ $this->id ] = $rest_response->as_error()->get_error_message();
+			} );
+			return false;
+		} else {
+			$this->updated_value = wp_json_encode( $rest_response->get_data() );
+			return true;
+		}
 	}
 }
