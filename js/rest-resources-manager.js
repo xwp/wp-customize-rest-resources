@@ -191,7 +191,7 @@ CustomizeRestResources.RestResourcesManager = wp.customize.Class.extend({
 				if ( -1 === manager.settingModels[ setting.id ].indexOf( model ) ) {
 					manager.settingModels[ setting.id ].push( model );
 				}
-				manager.trigger( 'rest-resource-backbone-model-initialized', model, customizeId );
+				manager.trigger( 'backbone-model-initialized', model, customizeId );
 			}
 		};
 

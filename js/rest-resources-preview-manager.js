@@ -62,7 +62,9 @@ CustomizeRestResources.RestResourcesPreviewManager = CustomizeRestResources.Rest
 			jQuery( document ).ajaxSuccess( _.bind( manager.handleAjaxSuccess, manager ) );
 		});
 
-		manager.bind( 'rest-resource-backbone-model-initialized', _.bind( manager.notifyBackboneModelInitialized, manager ) );
+		manager.bind( 'backbone-model-initialized', function( model, settingId ) {
+			manager.notifySettingPostMessageTransportEligible( settingId, model.toJSON() );
+		} );
 	},
 
 	/**
@@ -116,15 +118,17 @@ CustomizeRestResources.RestResourcesPreviewManager = CustomizeRestResources.Rest
 	},
 
 	/**
-	 * Notify Customizer pane of a backbone model initialized for a given REST resource.
+	 * Notify Customizer pane that a REST resource setting can use the postMessage transport.
 	 *
-	 * @param {Backbone.Model} model
+	 * This method should be called whenever a JS model (e.g. Backbone Model) is used to represent a REST resource.
+	 *
 	 * @param {string} settingId
+	 * @param {object} resource
 	 */
-	notifyBackboneModelInitialized: function( model, settingId ) {
+	notifySettingPostMessageTransportEligible: function( settingId, resource ) {
 		var manager = this;
 		manager.previewActive.done( function() {
-			wp.customize.preview.send( 'rest-resource-backbone-model-initialized', settingId, model.toJSON() );
+			wp.customize.preview.send( 'rest-resource-setting-postmessage-transport-eligible', settingId, resource );
 		} );
 	},
 

@@ -31,7 +31,7 @@ CustomizeRestResources.RestResourcesPaneManager = CustomizeRestResources.RestRes
 				}
 				manager.ensureSetting( resource );
 			} );
-			wp.customize.previewer.bind( 'rest-resource-backbone-model-initialized', _.bind( manager.setPostMessageTransport, manager ) );
+			wp.customize.previewer.bind( 'rest-resource-setting-postmessage-transport-eligible', _.bind( manager.setPostMessageTransport, manager ) );
 		});
 	},
 
@@ -66,10 +66,13 @@ CustomizeRestResources.RestResourcesPaneManager = CustomizeRestResources.RestRes
 	/**
 	 * Set postMessage transport for the supplied setting ID.
 	 *
-	 * By default settings get created with refresh transport. Only when a Backbone
+	 * By default settings get created with refresh transport. Only when JS model
 	 * model is initialized that uses the resource will the setting opt-in to
 	 * postMessage, since the Backbone model initialization signals that we are
-	 * able to sync the model changes back into the initialized Backbone model.
+	 * able to sync the model changes back into the initialized JS model. By
+	 * default only WP-API Backbone models are supported, but other JS models
+	 * can be supported by sending rest-resource-setting-postmessage-transport-eligible
+	 * messages from the preview (via the preview manager's notifySettingPostMessageTransportEligible method).
 	 *
 	 * @param {string} settingId
 	 */
