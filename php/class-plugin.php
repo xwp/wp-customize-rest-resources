@@ -351,6 +351,7 @@ class Plugin extends Plugin_Base {
 		if ( preg_match( '#^rest_resource\[(?P<route>.*?)\]#', $setting_id ) ) {
 			$setting_args['type'] = WP_Customize_REST_Resource_Setting::TYPE;
 			$setting_args['transport'] = 'refresh';
+			$setting_args['plugin'] = $this;
 		}
 		return $setting_args;
 	}

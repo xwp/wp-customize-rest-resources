@@ -17,6 +17,13 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 	const TYPE = 'rest_resource';
 
 	/**
+	 * Plugin instance.
+	 *
+	 * @var Plugin
+	 */
+	public $plugin;
+
+	/**
 	 * Type of setting.
 	 *
 	 * @access public
@@ -55,9 +62,12 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 	 * @param array                 $args    Setting args.
 	 * @throws Exception If the ID is in an invalid format.
 	 */
-	public function __construct( $manager, $id, $args ) {
+	public function __construct( $manager, $id, $args = array() ) {
 		if ( ! isset( $args['sanitize_callback'] ) ) {
 			$args['sanitize_callback'] = array( $this, 'sanitize' );
+		}
+		if ( ! isset( $args['plugin'] ) || ! ( $args['plugin'] instanceof Plugin ) ) {
+			throw new Exception( sprintf( 'Missing plugin arg for %s', get_class( $this ) ) );
 		}
 		parent::__construct( $manager, $id, $args );
 		if ( ! preg_match( '#^rest_resource\[(?P<route>.+?)]$#', $id, $matches ) ) {
