@@ -70,9 +70,6 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 			throw new Exception( 'Illegal setting id: ' . $id );
 		}
 		$this->route = trim( $matches['route'], '/' );
-		if ( ! isset( $args['default'] ) ) {
-			$args['default'] = $this->get_default();
-		}
 		if ( ! isset( $args['plugin'] ) || ! ( $args['plugin'] instanceof Plugin ) ) {
 			throw new Exception( sprintf( 'Missing plugin arg for %s', get_class( $this ) ) );
 		}
@@ -287,11 +284,14 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 	/**
 	 * Get the default value according to the schema.
 	 *
+	 * Note that this is used instead of setting the $default property in the
+	 * constructor since it requires computation to obtain, and it will only
+	 * be used in the uncommon case where there is no saved value nor any post value.
+	 *
 	 * @throws Exception If the schema request failed.
 	 * @return string JSON default value.
 	 */
-	protected function get_default() {
-
+	public function get_default() {
 		$rest_server = $this->get_rest_server();
 		$rest_request = new \WP_REST_Request( 'OPTIONS', '/' . $this->route );
 		$rest_response = $rest_server->dispatch( $rest_request );
@@ -336,19 +336,23 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 	 * @return string JSON.
 	 */
 	public function value() {
+		$value = null;
 		if ( $this->is_previewed ) {
-			return $this->post_value( $this->default );
+			$value = $this->post_value();
 		}
-
-		$rest_server = $this->get_rest_server();
-		$route = '/' . ltrim( $this->route, '/' );
-		$rest_request = new \WP_REST_Request( 'GET', $route );
-		$rest_response = $rest_server->dispatch( $rest_request );
-		if ( ! $rest_response->is_error() ) {
-			return wp_json_encode( $rest_response->get_data() );
+		if ( ! $value ) {
+			$rest_server = $this->get_rest_server();
+			$route = '/' . ltrim( $this->route, '/' );
+			$rest_request = new \WP_REST_Request( 'GET', $route );
+			$rest_response = $rest_server->dispatch( $rest_request );
+			if ( ! $rest_response->is_error() ) {
+				$value = wp_json_encode( $rest_response->get_data() );
+			}
 		}
-
-		return $this->default;
+		if ( ! $value ) {
+			$value = $this->get_default();
+		}
+		return $value;
 	}
 
 	/**
