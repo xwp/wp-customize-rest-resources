@@ -50,9 +50,6 @@ CustomizeRestResources.RestResourcesManager = wp.customize.Class.extend({
 		if ( 'undefined' === typeof wp.api ) {
 			throw new Error( 'wp.api is not defined' );
 		}
-		if ( 0 === _.values( wp.api.collections ).length || 0 === _.values( wp.api.models ).length ) {
-			throw new Error( 'wp.api has not been initialized yet' );
-		}
 		_.each( [ 'restApiRoot', 'previewNonce', 'previewedTheme' ], function( key ) {
 			if ( ! manager[ key ] ) {
 				throw new Error( 'Missing ' + key + ' arg' );
@@ -65,15 +62,13 @@ CustomizeRestResources.RestResourcesManager = wp.customize.Class.extend({
 	},
 
 	/**
-	 * Inject logic to each model to register it among the instances of a given resource.
+	 * Inject logic to each Backbone model to register it among the instances of a given resource.
 	 */
 	injectModelSync: function() {
-		var manager = this, WPApiBaseModel, originalModelInitialize;
+		var manager = this, originalModelInitialize;
 
-		WPApiBaseModel = _.first( _.values( wp.api.models ) ).__super__.constructor;
-
-		originalModelInitialize = WPApiBaseModel.prototype.initialize;
-		WPApiBaseModel.prototype.initialize = function( attributes, options ) {
+		originalModelInitialize = wp.api.WPApiBaseModel.prototype.initialize;
+		wp.api.WPApiBaseModel.prototype.initialize = function( attributes, options ) {
 			var model = this;
 			manager.initializeBackboneModel.call( manager, model, attributes, options, originalModelInitialize );
 		};
