@@ -146,6 +146,7 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 		remove_filter( 'rest_dispatch_request', '__return_false' );
 
 		$data = json_decode( $this->request->get_body(), true );
+		unset( $data['_embedded'] );
 		$attributes = $this->request->get_attributes();
 		$args = $attributes['args'];
 		foreach ( array_keys( $data ) as $key ) {
@@ -331,8 +332,6 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 	/**
 	 * Return REST resource setting's JSON.
 	 *
-	 * @todo Strip out embedded from being included?
-	 *
 	 * @return string JSON.
 	 */
 	public function value() {
@@ -378,9 +377,7 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 				$response['customize_rest_resources_save_errors'][ $this->id ] = $rest_response->as_error()->get_error_message();
 			} );
 			return false;
-		} else {
-			$this->updated_value = wp_json_encode( $rest_response->get_data() );
-			return true;
 		}
+		return true;
 	}
 }
