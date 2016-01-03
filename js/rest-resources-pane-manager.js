@@ -25,12 +25,13 @@ CustomizeRestResources.RestResourcesPaneManager = CustomizeRestResources.RestRes
 			wp.customize.bind( 'add', callback );
 			wp.customize.bind( 'change', callback );
 			wp.customize.bind( 'saved', callback );
-			wp.customize.previewer.bind( 'previewedRestResource', function( resource ) {
+			wp.customize.previewer.bind( 'rest-resource-previewed', function( resource ) {
 				if ( _.isString( resource ) ) {
 					resource = JSON.parse( resource );
 				}
 				manager.ensureSetting( resource );
 			} );
+			wp.customize.previewer.bind( 'rest-resource-backbone-model-initialized', _.bind( manager.setPostMessageTransport, manager ) );
 		});
 	},
 
@@ -60,6 +61,22 @@ CustomizeRestResources.RestResourcesPaneManager = CustomizeRestResources.RestRes
 		}
 
 		return setting;
+	},
+
+	/**
+	 * Set postMessage transport for the supplied setting ID.
+	 *
+	 * By default settings get created with refresh transport. Only when a Backbone
+	 * model is initialized that uses the resource will the setting opt-in to
+	 * postMessage, since the Backbone model initialization signals that we are
+	 * able to sync the model changes back into the initialized Backbone model.
+	 *
+	 * @param {string} settingId
+	 */
+	setPostMessageTransport: function( settingId ) {
+		wp.customize( settingId, function( setting ) {
+			setting.transport = 'postMessage';
+		} );
 	},
 
 	/**

@@ -61,6 +61,8 @@ CustomizeRestResources.RestResourcesPreviewManager = CustomizeRestResources.Rest
 
 			jQuery( document ).ajaxSuccess( _.bind( manager.handleAjaxSuccess, manager ) );
 		});
+
+		manager.bind( 'rest-resource-backbone-model-initialized', _.bind( manager.notifyBackboneModelInitialized, manager ) );
 	},
 
 	/**
@@ -114,6 +116,19 @@ CustomizeRestResources.RestResourcesPreviewManager = CustomizeRestResources.Rest
 	},
 
 	/**
+	 * Notify Customizer pane of a backbone model initialized for a given REST resource.
+	 *
+	 * @param {Backbone.Model} model
+	 * @param {string} settingId
+	 */
+	notifyBackboneModelInitialized: function( model, settingId ) {
+		var manager = this;
+		manager.previewActive.done( function() {
+			wp.customize.preview.send( 'rest-resource-backbone-model-initialized', settingId, model.toJSON() );
+		} );
+	},
+
+	/**
 	 * Send the setting to tha Customizer pane when it is created in the preview.
 	 *
 	 * Create and add the setting for a given REST Resource.
@@ -130,7 +145,7 @@ CustomizeRestResources.RestResourcesPreviewManager = CustomizeRestResources.Rest
 		 * in the pane along with any controls.
 		 */
 		manager.previewActive.done( function() {
-			wp.customize.preview.send( 'previewedRestResource', setting() );
+			wp.customize.preview.send( 'rest-resource-previewed', setting() );
 		} );
 
 		return setting;

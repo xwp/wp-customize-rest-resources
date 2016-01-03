@@ -138,9 +138,13 @@ CustomizeRestResources.RestResourcesManager = wp.customize.Class.extend({
 			delete resource._embedded;
 
 			if ( wp.customize.Setting ) {
-				// This will run in the Customizer pane.
+				/*
+				 * This will run in the Customizer pane.
+				 * Note that the transport will get upgraded to postMessage upon the pane
+				 * receiving an rest-resource-backbone-model-initialized message with
+				 * the appropriate setting ID.
+				 */
 				setting = new wp.customize.Setting( customizeId, JSON.stringify( resource ), {
-					transport: 'postMessage',
 					previewer: wp.customize.previewer || null
 				} );
 			} else {
@@ -179,6 +183,7 @@ CustomizeRestResources.RestResourcesManager = wp.customize.Class.extend({
 		registerSelf = function() {
 			var model = this, setting, customizeId = manager.getCustomizeId( model.attributes );
 			if ( customizeId ) {
+				model.customizeId = customizeId;
 				setting = manager.ensureSetting( model.toJSON() );
 				if ( ! manager.settingModels[ setting.id ] ) {
 					manager.settingModels[ setting.id ] = [];
@@ -186,6 +191,7 @@ CustomizeRestResources.RestResourcesManager = wp.customize.Class.extend({
 				if ( -1 === manager.settingModels[ setting.id ].indexOf( model ) ) {
 					manager.settingModels[ setting.id ].push( model );
 				}
+				manager.trigger( 'rest-resource-backbone-model-initialized', model, customizeId );
 			}
 		};
 
@@ -256,3 +262,5 @@ CustomizeRestResources.RestResourcesManager = wp.customize.Class.extend({
 		options.data += jQuery.param( manager.getCustomizeQueryVars() );
 	}
 } );
+
+_.extend( CustomizeRestResources.RestResourcesManager.prototype, wp.customize.Events );
