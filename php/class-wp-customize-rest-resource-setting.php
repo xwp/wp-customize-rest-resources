@@ -66,14 +66,17 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 		if ( ! isset( $args['sanitize_callback'] ) ) {
 			$args['sanitize_callback'] = array( $this, 'sanitize' );
 		}
-		if ( ! isset( $args['plugin'] ) || ! ( $args['plugin'] instanceof Plugin ) ) {
-			throw new Exception( sprintf( 'Missing plugin arg for %s', get_class( $this ) ) );
-		}
-		parent::__construct( $manager, $id, $args );
 		if ( ! preg_match( '#^rest_resource\[(?P<route>.+?)]$#', $id, $matches ) ) {
 			throw new Exception( 'Illegal setting id: ' . $id );
 		}
 		$this->route = trim( $matches['route'], '/' );
+		if ( ! isset( $args['default'] ) ) {
+			$args['default'] = $this->get_default();
+		}
+		if ( ! isset( $args['plugin'] ) || ! ( $args['plugin'] instanceof Plugin ) ) {
+			throw new Exception( sprintf( 'Missing plugin arg for %s', get_class( $this ) ) );
+		}
+		parent::__construct( $manager, $id, $args );
 	}
 
 	/**
@@ -279,6 +282,50 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 		}
 
 		return $resource;
+	}
+
+	/**
+	 * Get the default value according to the schema.
+	 *
+	 * @throws Exception If the schema request failed.
+	 * @return string JSON default value.
+	 */
+	protected function get_default() {
+
+		$rest_server = $this->get_rest_server();
+		$rest_request = new \WP_REST_Request( 'OPTIONS', '/' . $this->route );
+		$rest_response = $rest_server->dispatch( $rest_request );
+		if ( $rest_response->is_error() ) {
+			throw new Exception( $rest_response->as_error()->get_error_message() );
+		}
+		$default = null;
+		$data = $rest_response->get_data();
+		if ( ! empty( $data['schema'] ) ) {
+			$default = $this->get_field_default_value( $data['schema'] );
+		}
+
+		return wp_json_encode( $default );
+	}
+
+	/**
+	 * Get the default value recursively from a multidimensional field schema.
+	 *
+	 * @param array $field Field properties.
+	 * @return mixed
+	 */
+	protected function get_field_default_value( $field ) {
+		if ( isset( $field['properties'] ) ) {
+			$value = array();
+			foreach ( $field['properties'] as $property_name => $sub_properties ) {
+				$value[ $property_name ] = $this->get_field_default_value( $sub_properties );
+			}
+		} else if ( isset( $field['default'] ) ) {
+			$value = $field['default'];
+		} else {
+			// @todo Try to provide default values based on type?
+			$value = null;
+		}
+		return $value;
 	}
 
 	/**
