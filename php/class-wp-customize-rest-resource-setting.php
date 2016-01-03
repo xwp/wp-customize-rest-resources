@@ -282,36 +282,27 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 	}
 
 	/**
-	 * Return value for setting.
+	 * Return REST resource setting's JSON.
 	 *
-	 * Note that this is currently only returning the sanitized value for any
-	 * any setting that is dirty. There shouldn't be any REST Resource settings
-	 * registered via PHP that are not dirty. Non-dirty settings are registered
-	 * dynamically via JS.
-	 *
-	 * @todo Implement returning the underlying item value when it is not dirty.
 	 * @todo Strip out embedded from being included?
 	 *
-	 * @return string|null JSON or null if item is not previewed.
+	 * @return string JSON.
 	 */
 	public function value() {
-		if ( isset( $this->updated_value ) ) {
-			return $this->updated_value;
-		} else {
-			return $this->post_value();
+		if ( $this->is_previewed ) {
+			return $this->post_value( $this->default );
 		}
-	}
 
-	/**
-	 * Saved response from update.
-	 *
-	 * @todo This is temporarily needed until value() implements the dispatching of the GET request.
-	 *
-	 * @see \CustomizeRESTResources\WP_Customize_REST_Resource_Setting::update()
-	 *
-	 * @var string
-	 */
-	protected $updated_value;
+		$rest_server = $this->get_rest_server();
+		$route = '/' . ltrim( $this->route, '/' );
+		$rest_request = new \WP_REST_Request( 'GET', $route );
+		$rest_response = $rest_server->dispatch( $rest_request );
+		if ( ! $rest_response->is_error() ) {
+			return wp_json_encode( $rest_response->get_data() );
+		}
+
+		return $this->default;
+	}
 
 	/**
 	 * Save the value of the setting.
