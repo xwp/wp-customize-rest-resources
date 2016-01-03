@@ -259,13 +259,13 @@ class Plugin extends Plugin_Base {
 	 */
 	public function enqueue_customize_preview_scripts() {
 		wp_enqueue_script( 'customize-rest-resources-preview-manager' );
-		add_action( 'wp_print_footer_scripts', array( $this, 'boot_preview_script' ), 100 );
+		add_action( 'wp_head', array( $this, 'boot_preview_script' ), 1000 );
 	}
 
 	/**
 	 * Boot script for Customizer preview.
 	 *
-	 * @action wp_print_footer_scripts
+	 * @action wp_head
 	 */
 	public function boot_preview_script() {
 		global $wp_customize;
