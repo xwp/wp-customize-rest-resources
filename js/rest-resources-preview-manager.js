@@ -47,13 +47,12 @@ CustomizeRestResources.RestResourcesPreviewManager = CustomizeRestResources.Rest
 			wp.customize.preview.bind( 'setting', _.bind( manager.receiveSetting, manager ) );
 
 			// Keep track of which settings are dirty.
-			wp.customize.preview.bind( 'dirtySetting', function( settingId ) {
-				if ( -1 === manager.dirtySettings.indexOf( settingId ) ) {
-					manager.dirtySettings.push( settingId );
-				}
-			} );
-			wp.customize.preview.bind( 'dirtySettings', function( settingIds ) {
-				manager.dirtySettings = settingIds;
+			wp.customize.preview.bind( 'rest-resource-dirty-setting', function( settingIds ) {
+				_.each( settingIds, function( settingId ) {
+					if ( -1 === manager.dirtySettings.indexOf( settingId ) ) {
+						manager.dirtySettings.push( settingId );
+					}
+				} );
 			} );
 
 			wp.customize.preview.bind( 'active', function() {

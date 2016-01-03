@@ -21,6 +21,7 @@ CustomizeRestResources.RestResourcesPaneManager = CustomizeRestResources.RestRes
 
 		wp.customize.bind( 'ready', function() {
 			var callback = _.bind( manager.notifyDirtySetting, manager );
+			manager.notifyDirtySettings();
 			wp.customize.bind( 'add', callback );
 			wp.customize.bind( 'change', callback );
 			wp.customize.bind( 'saved', callback );
@@ -68,7 +69,7 @@ CustomizeRestResources.RestResourcesPaneManager = CustomizeRestResources.RestRes
 	 */
 	notifyDirtySetting: function( setting ) {
 		if ( setting._dirty ) {
-			wp.customize.previewer.send( 'dirtySetting', setting.id );
+			wp.customize.previewer.send( 'rest-resource-dirty-setting', [ setting.id ] );
 		}
 	},
 
@@ -76,13 +77,13 @@ CustomizeRestResources.RestResourcesPaneManager = CustomizeRestResources.RestRes
 	 * Notify preview of all dirty settings.
 	 */
 	notifyDirtySettings: function() {
-		var manager = this, dirtySettingIds = [];
+		var dirtySettingIds = [];
 		wp.customize.each( function( value, key ) {
 			if ( value._dirty ) {
 				dirtySettingIds.push( key );
 			}
 		} );
-		wp.customize.previewer.send( 'dirtySettings', dirtySettingIds );
+		wp.customize.previewer.send( 'rest-resource-dirty-setting', dirtySettingIds );
 	},
 
 	/**
