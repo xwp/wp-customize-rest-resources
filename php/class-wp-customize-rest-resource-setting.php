@@ -320,7 +320,7 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 			$rest_request = new \WP_REST_Request( 'GET', $route );
 			$rest_response = $rest_server->dispatch( $rest_request );
 			if ( ! $rest_response->is_error() ) {
-				$value = wp_json_encode( $rest_response->get_data() );
+				$value = wp_json_encode( $rest_server->response_to_data( $rest_response, false ) );
 			}
 		}
 		if ( ! $value ) {
