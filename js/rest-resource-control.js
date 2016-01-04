@@ -96,8 +96,8 @@ CustomizeRestResources.RestResourceControl = wp.customize.Control.extend({
 	 * Add the elements for the control to manipulate the resource.
 	 */
 	addElements: function() {
-		var control = this, element, textarea, elementContainer = control.container.find( '.elements-container:first' );
-		// @todo if ( ! control.routeData || ! control.routeData.schema ) {
+		var control = this, element, ul, value, textarea, elementContainer = control.container.find( '.elements-container:first' );
+		if ( ! control.routeData || ! control.routeData.schema ) {
 			textarea = jQuery( '<textarea>' );
 			elementContainer.append( textarea );
 
@@ -105,9 +105,37 @@ CustomizeRestResources.RestResourceControl = wp.customize.Control.extend({
 			control.elements.push( element );
 			element.sync( control.setting );
 			element.set( control.setting() || '{}' );
-		//} else {
+		} else {
+			// @todo Underscore template, let us be able to define the template for each route. This is essential because each resource type can have tailored field orders.
+			ul = jQuery( '<ul>' );
+			value = JSON.parse( control.setting() );
+
+			_.each( control.routeData.schema.properties, function( fieldData, fieldId ) {
+				var input, element, li, label, domId;
+				domId = 'element' + String( Math.random() );
+				li = jQuery( '<li>' );
+				label = jQuery( '<label></label>', {
+					'for': domId,
+					text: fieldId
+				} );
+				li.append( label );
+				input = jQuery( '<input>', {
+					id: domId,
+					readonly: fieldData.readonly
+				} );
+				if ( _.isObject( value[ fieldId ] ) ) {
+					input.val( value[ fieldId ].raw || value[ fieldId ].rendered ); // @todo what if raw not available?
+				} else {
+					input.val( value[ fieldId ] );
+				}
+				li.append( input );
+				ul.append( li );
+				// @todo element = new wp.customize.Element( input );
+			} );
+			elementContainer.append( ul );
+
 			// @todo Given schema exported from PHP, iterate over endpoints and find options matching to then generate the controls to inject into the control.
 			// @todo How to handle raw vs rendered? (Ultimately it is using server-side.)
-		//}
+		}
 	}
 });
