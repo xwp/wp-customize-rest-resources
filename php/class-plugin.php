@@ -56,6 +56,31 @@ class Plugin extends Plugin_Base {
 	}
 
 	/**
+	 * Get instance of WP_REST_Server.
+	 *
+	 * @todo This should be part of Core.
+	 *
+	 * @return \WP_REST_Server
+	 */
+	public function get_rest_server() {
+		/**
+		 * REST Server.
+		 *
+		 * @var \WP_REST_Server $wp_rest_server
+		 */
+		global $wp_rest_server;
+		if ( empty( $wp_rest_server ) ) {
+			/** This filter is documented in wp-includes/rest-api.php */
+			$wp_rest_server_class = apply_filters( 'wp_rest_server_class', 'WP_REST_Server' );
+			$wp_rest_server = new $wp_rest_server_class();
+
+			/** This filter is documented in wp-includes/rest-api.php */
+			do_action( 'rest_api_init', $wp_rest_server );
+		}
+		return $wp_rest_server;
+	}
+
+	/**
 	 * Filter the WP_REST_Server to be our Customizer subclass.
 	 *
 	 * @param string $class Class name.

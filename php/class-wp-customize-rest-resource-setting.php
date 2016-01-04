@@ -96,31 +96,6 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 	}
 
 	/**
-	 * Get instance of WP_REST_Server.
-	 *
-	 * @todo This should be part of Core.
-	 *
-	 * @return \WP_REST_Server
-	 */
-	public function get_rest_server() {
-		/**
-		 * REST Server.
-		 *
-		 * @var \WP_REST_Server $wp_rest_server
-		 */
-		global $wp_rest_server;
-		if ( empty( $wp_rest_server ) ) {
-			/** This filter is documented in wp-includes/rest-api.php */
-			$wp_rest_server_class = apply_filters( 'wp_rest_server_class', 'WP_REST_Server' );
-			$wp_rest_server = new $wp_rest_server_class();
-
-			/** This filter is documented in wp-includes/rest-api.php */
-			do_action( 'rest_api_init', $wp_rest_server );
-		}
-		return $wp_rest_server;
-	}
-
-	/**
 	 * Sanitize (and validate) an input.
 	 *
 	 * @param string $value   The value to sanitize.
@@ -142,7 +117,7 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 		$validity_errors = new \WP_Error();
 
 		add_filter( 'rest_dispatch_request', '__return_false' );
-		$this->get_rest_server()->dispatch( $this->request );
+		$this->plugin->get_rest_server()->dispatch( $this->request );
 		remove_filter( 'rest_dispatch_request', '__return_false' );
 
 		$data = json_decode( $this->request->get_body(), true );
@@ -293,7 +268,7 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 	 * @return string JSON default value.
 	 */
 	public function get_default() {
-		$rest_server = $this->get_rest_server();
+		$rest_server = $this->plugin->get_rest_server();
 		$rest_request = new \WP_REST_Request( 'OPTIONS', '/' . $this->route );
 		$rest_response = $rest_server->dispatch( $rest_request );
 		if ( $rest_response->is_error() ) {
@@ -340,7 +315,7 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 			$value = $this->post_value();
 		}
 		if ( ! $value ) {
-			$rest_server = $this->get_rest_server();
+			$rest_server = $this->plugin->get_rest_server();
 			$route = '/' . ltrim( $this->route, '/' );
 			$rest_request = new \WP_REST_Request( 'GET', $route );
 			$rest_response = $rest_server->dispatch( $rest_request );
@@ -362,7 +337,7 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 	 * @return bool The result of saving the value.
 	 */
 	protected function update( $value ) {
-		$wp_rest_server = $this->get_rest_server();
+		$wp_rest_server = $this->plugin->get_rest_server();
 		$route = '/' . ltrim( $this->route, '/' );
 		$rest_request = new \WP_REST_Request( 'PUT', $route );
 		$rest_request->set_header( 'content-type', 'application/json' );
