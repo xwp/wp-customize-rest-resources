@@ -15,6 +15,7 @@ CustomizeRestResources.RestResourcesPaneManager = CustomizeRestResources.RestRes
 	initialize: function( args ) {
 		var manager = this;
 		CustomizeRestResources.RestResourcesManager.prototype.initialize.call( manager, args );
+		manager.schema = args.schema || {};
 
 		wp.customize.sectionConstructor.rest_resources = CustomizeRestResources.RestResourcesSection;
 		wp.customize.controlConstructor.rest_resource = CustomizeRestResources.RestResourceControl;

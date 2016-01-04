@@ -42,7 +42,7 @@ class WP_Customize_REST_Resource_Control extends \WP_Customize_Control {
 		?>
 		<details>
 			<summary class="customize-control-title"><code>{{ data.label }}</code></summary>
-			<textarea class="json" data-customize-setting-link="{{ data.settingId }}"></textarea>
+			<div class="elements-container"></div>
 			<div class="customize-setting-validation-message error" aria-live="assertive"></div>
 		</details>
 		<?php

@@ -249,16 +249,26 @@ class Plugin extends Plugin_Base {
 	/**
 	 * Boot script for Customizer pane.
 	 *
+	 * @throws Exception If the schema could not be obtained.
 	 * @action customize_controls_print_footer_scripts
 	 */
 	public function boot_pane_script() {
 		global $wp_customize;
 		wp_print_scripts( array( 'customize-rest-resources-pane-manager' ) );
 
+		$rest_server = $this->get_rest_server();
+		$rest_request = new \WP_REST_Request( 'GET', '/' );
+		$rest_response = $rest_server->dispatch( $rest_request );
+		if ( $rest_response->is_error() ) {
+			throw new Exception( $rest_response->as_error()->get_error_message() );
+		}
+		$schema = $rest_server->get_data_for_routes( $rest_server->get_routes(), 'help' );
+
 		$args = array(
 			'previewedTheme' => $wp_customize->get_stylesheet(),
 			'previewNonce' => wp_create_nonce( 'preview-customize_' . $wp_customize->get_stylesheet() ),
 			'restApiRoot' => get_rest_url(),
+			'schema' => $schema,
 		);
 		?>
 		<script>

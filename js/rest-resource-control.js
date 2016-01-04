@@ -19,7 +19,7 @@ CustomizeRestResources.RestResourceControl = wp.customize.Control.extend({
 	 * @param {object} options.params  Params hash for the control instance.
 	 */
 	initialize: function( id, options ) {
-		var control = this, element;
+		var control = this, matches;
 		options = options || {};
 		options.params = options.params || {};
 		if ( ! options.params.content ) {
@@ -34,18 +34,28 @@ CustomizeRestResources.RestResourceControl = wp.customize.Control.extend({
 		if ( 'undefined' === typeof options.params.active ) {
 			options.params.active = true;
 		}
+		matches = id.match( /^rest_resource\[(.+?)]/ );
+		if ( ! matches ) {
+			throw new Error( 'Illegal ID: ' + id );
+		}
+		control.route = matches[1];
+		control.routeData = _.find( CustomizeRestResources.manager.schema, function( data, routePattern ) {
+			var regex;
+			// Replace named pattern with unnamed ones (since the former is not supported yet in JS).
+			routePattern = routePattern.replace( /\(\?P<\w+>/g, '(' );
+			regex = new RegExp( '^' + routePattern + '$' );
+			return regex.test( '/' + control.route );
+		} );
+
 		if ( ! options.params.label ) {
-			options.params.label = id.replace( /^rest_resource\[(.+?)]/, '$1' );
+			// @todo if ( control.routeData && control.routeData.schema.title ) { options.params.label = control.routeData.schema.title.charAt( 0 ).toUpperCase() + control.routeData.schema.title.slice( 1 ); }
+			options.params.label = control.route;
 		}
 
 		options.params.settingId = id;
 		wp.customize.Control.prototype.initialize.call( control, id, options );
 
-		// @todo Syntax highlighting code editor.
-		element = new wp.customize.Element( control.container.find( 'textarea' ) );
-		control.elements.push( element );
-		element.sync( control.setting );
-		element.set( control.setting() || '{}' );
+		control.addElements();
 
 		/**
 		 * Prevent control from being deactivated when the preview refreshes.
@@ -71,5 +81,24 @@ CustomizeRestResources.RestResourceControl = wp.customize.Control.extend({
 				}
 			}
 		} );
+	},
+
+	/**
+	 * Add the elements for the control to manipulate the resource.
+	 */
+	addElements: function() {
+		var control = this, element, textarea, elementContainer = control.container.find( '.elements-container:first' );
+		// @todo if ( ! control.routeData || ! control.routeData.schema ) {
+			textarea = jQuery( '<textarea>' );
+			elementContainer.append( textarea );
+
+			element = new wp.customize.Element( textarea );
+			control.elements.push( element );
+			element.sync( control.setting );
+			element.set( control.setting() || '{}' );
+		//} else {
+			// @todo Given schema exported from PHP, iterate over endpoints and find options matching to then generate the controls to inject into the control.
+			// @todo How to handle raw vs rendered? (Ultimately it is using server-side.)
+		//}
 	}
 });
