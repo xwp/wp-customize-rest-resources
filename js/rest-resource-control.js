@@ -84,6 +84,15 @@ CustomizeRestResources.RestResourceControl = wp.customize.Control.extend({
 	},
 
 	/**
+	 * Ensure the details element gets opened before focus is done.
+	 */
+	focus: function() {
+		var control = this;
+		control.container.find( 'details:first' ).prop( 'open', true );
+		wp.customize.Control.prototype.focus.apply( this, arguments );
+	},
+
+	/**
 	 * Add the elements for the control to manipulate the resource.
 	 */
 	addElements: function() {
