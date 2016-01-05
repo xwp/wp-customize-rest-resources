@@ -33,7 +33,7 @@ CustomizeRestResources.RestResourcesPaneManager = CustomizeRestResources.RestRes
 				manager.ensureSetting( resource );
 			} );
 			wp.customize.previewer.bind( 'rest-resource-setting-postmessage-transport-eligible', _.bind( manager.setPostMessageTransport, manager ) );
-			wp.customize.bind( 'saved', _.bind( manager.handleSaveErrors, manager )) ;
+			wp.customize.bind( 'saved', _.bind( manager.handleSaveErrors, manager ) ) ;
 		});
 	},
 

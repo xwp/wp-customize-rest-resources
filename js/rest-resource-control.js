@@ -41,6 +41,7 @@ CustomizeRestResources.RestResourceControl = wp.customize.Control.extend({
 		control.route = matches[1];
 		control.routeData = _.find( CustomizeRestResources.manager.schema, function( data, routePattern ) {
 			var regex;
+
 			// Replace named pattern with unnamed ones (since the former is not supported yet in JS).
 			routePattern = routePattern.replace( /\(\?P<\w+>/g, '(' );
 			regex = new RegExp( '^' + routePattern + '$' );
@@ -48,6 +49,7 @@ CustomizeRestResources.RestResourceControl = wp.customize.Control.extend({
 		} );
 
 		if ( ! options.params.label ) {
+
 			// @todo if ( control.routeData && control.routeData.schema.title ) { options.params.label = control.routeData.schema.title.charAt( 0 ).toUpperCase() + control.routeData.schema.title.slice( 1 ); }
 			options.params.label = control.route;
 		}
@@ -60,7 +62,7 @@ CustomizeRestResources.RestResourceControl = wp.customize.Control.extend({
 		 *
 		 * @returns {boolean}
 		 */
-		control.active.validate = function () {
+		control.active.validate = function() {
 			return true;
 		};
 	},
@@ -108,12 +110,11 @@ CustomizeRestResources.RestResourceControl = wp.customize.Control.extend({
 		wp.customize.Control.prototype.focus.apply( this, arguments );
 	},
 
-
 	/**
 	 * Add default route fields derived from the route schema.
 	 */
 	addRouteFields: function() {
-		var control = this, element, ul, value, textarea, elementContainer = control.container.find( '.elements-container:first' );
+		var control = this, element, ul, textarea, elementContainer = control.container.find( '.elements-container:first' );
 
 		// If no route schema available, fallback to just displaying a JSON textarea.
 		if ( ! control.routeData || ! control.routeData.schema ) {
@@ -161,7 +162,7 @@ CustomizeRestResources.RestResourceControl = wp.customize.Control.extend({
 		// @todo Handle recursive.
 
 		// Handled nested raw/rendered objects, promoting the raw value to the top-level.
-		if ( fieldSchema.type === 'object' ) {
+		if ( 'object' === fieldSchema.type ) {
 			if ( fieldSchema.properties && fieldSchema.properties.raw && ! _.isUndefined( settingValue[ fieldId ].raw ) ) {
 				fieldSchema = fieldSchema.properties.raw;
 				hasRaw = true;
@@ -202,6 +203,7 @@ CustomizeRestResources.RestResourceControl = wp.customize.Control.extend({
 			} else if ( 'email' === fieldSchema.format ) {
 				input.attr( 'type', 'email' );
 			} else if ( 'string' === fieldSchema.type ) {
+
 				// @todo if ( 'date-time' === fieldSchema.format ) { input.attr( 'type', 'datetime-local' ); }
 				input.attr( 'type', 'text' );
 				if ( fieldSchema.maxLength ) {
@@ -242,11 +244,13 @@ CustomizeRestResources.RestResourceControl = wp.customize.Control.extend({
 		matches = fieldId.match( /^(.+)_gmt$/ );
 		if ( matches && ! _.isUndefined( control.routeData.schema.properties[ matches[1] ] ) ) {
 			input.prop( 'readonly', true );
+
 			// @todo We could do some client-side translation of the local time to GMT.
 		}
 
-		element.validate = function ( value ) {
+		element.validate = function( value ) {
 			if ( isNestedFallbackInput ) {
+
 				// For JSON fields.
 				if ( ! _.isString( value ) ) {
 					value = JSON.stringify( value );
@@ -266,8 +270,8 @@ CustomizeRestResources.RestResourceControl = wp.customize.Control.extend({
 			element.set( elementValue );
 		} );
 
-		element.bind( function ( fieldElementValue ) {
-			var resourceSettingValue, date;
+		element.bind( function( fieldElementValue ) {
+			var resourceSettingValue;
 			resourceSettingValue = control.parsedSettingValue.get();
 
 			// @todo prevent recursion?

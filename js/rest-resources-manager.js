@@ -11,7 +11,7 @@
  */
 CustomizeRestResources.RestResourcesManager = wp.customize.Class.extend({
 
-	initialize: function ( args ) {
+	initialize: function( args ) {
 		var manager = this;
 
 		/**
@@ -133,6 +133,7 @@ CustomizeRestResources.RestResourcesManager = wp.customize.Class.extend({
 		}
 		setting = wp.customize( customizeId );
 		if ( ! setting ) {
+
 			// Prevent embedded resources from being included in Customizer settings.
 			resource = _.clone( resource );
 			delete resource._embedded;
@@ -148,6 +149,7 @@ CustomizeRestResources.RestResourcesManager = wp.customize.Class.extend({
 					previewer: wp.customize.previewer || null
 				} );
 			} else {
+
 				// This will run in the Customizer preview.
 				setting = new wp.customize.Value( JSON.stringify( resource ) );
 				setting.id = customizeId;
