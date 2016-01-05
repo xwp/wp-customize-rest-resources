@@ -9,7 +9,7 @@ Edit any resource fetched from the WP REST API in the Customizer, with fields au
 **Stable tag:** trunk (master)  
 **License:** [GPLv2 or later](http://www.gnu.org/licenses/gpl-2.0.html)  
 
-[![Build Status](https://travis-ci.org/xwp/wp-customize-rest-resources.svg?branch=master)](https://travis-ci.org/xwp/wp-customize-rest-resources) [![Coverage Status](https://coveralls.io/repos/xwp/wp-customize-rest-resources/badge.svg?branch=master)](https://coveralls.io/github/xwp/wp-customize-rest-resources) [![Built with Grunt](https://cdn.gruntjs.com/builtwith.png)](http://gruntjs.com) [![devDependency Status](https://david-dm.org/xwp/wp-customize-rest-resources/dev-status.svg)](https://david-dm.org/xwp/wp-customize-rest-resources#info=devDependencies) 
+[![Build Status](https://travis-ci.org/xwp/wp-customize-rest-resources.svg?branch=master)](https://travis-ci.org/xwp/wp-customize-rest-resources) [![Built with Grunt](https://cdn.gruntjs.com/builtwith.png)](http://gruntjs.com) [![devDependency Status](https://david-dm.org/xwp/wp-customize-rest-resources/dev-status.svg)](https://david-dm.org/xwp/wp-customize-rest-resources#info=devDependencies) 
 
 ## Description ##
 
