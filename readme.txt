@@ -20,7 +20,7 @@ This plugin is closely related to the [Customizer Transactions](https://make.wor
 
 The Customize REST Resources plugin is closely related to [A more RESTful WP-CLI](https://www.kickstarter.com/projects/danielbachhuber/a-more-restful-wp-cli/description) which seeks to “unlock the potential of the WP REST API at the command line” in that “all WP REST API endpoints registered via plugins and themes will _automagically_ be usable as WP-CLI commands”. In the same way, Customize REST Resources begins to unlock the potential of the WP REST API in the _Customizer_ by automagically creating settings and controls for all REST resources that are used on a given page. In this way, *anything developed for the REST API should automatically be available in the Customizer*.
 
- Here's a quick demo of an alpha state of this plugin:
+Here's a quick demo of an alpha state of this plugin when used with [Next Recent Posts](https://github.com/xwp/wp-next-recent-posts-widget) widget:
 
 [youtube https://youtu.be/d3QMA9Zkwok]
 
