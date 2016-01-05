@@ -21,13 +21,15 @@ When the WP API JS client is used, where REST resources are encapsulated in Back
 
 This plugin is closely related to the [Customizer Transactions](https://make.wordpress.org/core/2015/01/26/customizer-transactions-proposal/) proposal in that it allows Ajax requests made in the Customizer preview to have customizations applied to them. With Transactions the customizations would apply to all requests, but with this plugin they only apply to the REST API requests made to the site's endpoint.
 
-The Customize REST Resources plugin is closely related to [A more RESTful WP-CLI](https://www.kickstarter.com/projects/danielbachhuber/a-more-restful-wp-cli/description) which seeks to “unlock the potential of the WP REST API at the command line” in that “all WP REST API endpoints registered via plugins and themes will _automagically_ be usable as WP-CLI commands”. In the same way, Customize REST Resources begins to unlock the potential of the WP REST API in the _Customizer_ by automagically creating settings and controls for all REST resources that are used on a given page. In this way, *anything developed for the REST API should automatically be available in the Customizer*.
+The Customize REST Resources plugin is closely related to [A more RESTful WP-CLI](https://www.kickstarter.com/projects/danielbachhuber/a-more-restful-wp-cli/description) which seeks to “unlock the potential of the WP REST API at the command line” in that “all WP REST API endpoints registered via plugins and themes will _automagically_ be usable as WP-CLI commands”. In the same way, Customize REST Resources begins to unlock the potential of the WP REST API in the _Customizer_ by automatically creating settings and controls for all REST resources that are used on a given page. In this way, **anything developed for the REST API should automatically be available in the Customizer**.
 
-Here's a quick demo of an alpha state of this plugin when used with [Next Recent Posts](https://github.com/xwp/wp-next-recent-posts-widget) widget:
+Here's a quick demo of an alpha state of this plugin when used with the [Next Recent Posts](https://github.com/xwp/wp-next-recent-posts-widget) widget:
 
 [![Play video on YouTube](https://i1.ytimg.com/vi/d3QMA9Zkwok/hqdefault.jpg)](https://www.youtube.com/watch?v=d3QMA9Zkwok)
 
 This plugin works best with the [Customize Setting Validation](https://github.com/xwp/wp-customize-setting-validation) feature plugin.
+
+Please note that this plugin depends on the bleeding-edge development version of the [Backbone JS client for the WP-API](https://github.com/WP-API/client-js), which as of 2016-01-05 was not yet upstreamed into the main [WP-API plugin](https://github.com/WP-API/WP-API).
 
 ## Limitations ##
 
