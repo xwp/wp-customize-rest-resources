@@ -351,7 +351,6 @@ class Plugin extends Plugin_Base {
 
 		// @todo Create a panel with multiple sections correspondng to each endpoint.
 		// @todo Mirror this in JS.
-
 		$i = 0;
 		foreach ( $wp_customize->settings() as $setting ) {
 			$needs_rest_control = (
