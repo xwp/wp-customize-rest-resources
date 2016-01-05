@@ -55,8 +55,6 @@ CustomizeRestResources.RestResourceControl = wp.customize.Control.extend({
 		options.params.settingId = id;
 		wp.customize.Control.prototype.initialize.call( control, id, options );
 
-		control.addElements();
-
 		/**
 		 * Prevent control from being deactivated when the preview refreshes.
 		 *
@@ -65,14 +63,27 @@ CustomizeRestResources.RestResourceControl = wp.customize.Control.extend({
 		control.active.validate = function () {
 			return true;
 		};
+	},
+
+	ready: function() {
+		var control = this;
+
+		control.parsedSettingValue = new wp.customize.Value();
 
 		control.setting.bind( function( newValue ) {
-			var setting = this;
+			var setting = this, parsedValue;
 			try {
-				JSON.parse( newValue );
+				parsedValue = JSON.parse( newValue );
 				control.container.removeClass( 'syntax-error' );
+
+				// @todo Will this blow away any validation message supplied from the server every time?
 				if ( setting.validationMessage ) {
 					setting.validationMessage.set( '' );
+				}
+
+				// Update the parsed setting value which will trigger the updates.
+				if ( ! _.isEqual( parsedValue, control.parsedSettingValue.get() ) ) {
+					control.parsedSettingValue.set( parsedValue );
 				}
 			} catch ( e ) {
 				control.container.addClass( 'syntax-error' );
@@ -81,6 +92,11 @@ CustomizeRestResources.RestResourceControl = wp.customize.Control.extend({
 				}
 			}
 		} );
+
+		// Set initial value for parsedSettingValue.
+		control.parsedSettingValue.set( JSON.parse( control.setting() || '{}' ) );
+
+		control.addRouteFields();
 	},
 
 	/**
@@ -92,11 +108,14 @@ CustomizeRestResources.RestResourceControl = wp.customize.Control.extend({
 		wp.customize.Control.prototype.focus.apply( this, arguments );
 	},
 
+
 	/**
-	 * Add the elements for the control to manipulate the resource.
+	 * Add default route fields derived from the route schema.
 	 */
-	addElements: function() {
+	addRouteFields: function() {
 		var control = this, element, ul, value, textarea, elementContainer = control.container.find( '.elements-container:first' );
+
+		// If no route schema available, fallback to just displaying a JSON textarea.
 		if ( ! control.routeData || ! control.routeData.schema ) {
 			textarea = jQuery( '<textarea>' );
 			elementContainer.append( textarea );
@@ -105,37 +124,182 @@ CustomizeRestResources.RestResourceControl = wp.customize.Control.extend({
 			control.elements.push( element );
 			element.sync( control.setting );
 			element.set( control.setting() || '{}' );
-		} else {
-			// @todo Underscore template, let us be able to define the template for each route. This is essential because each resource type can have tailored field orders.
-			ul = jQuery( '<ul>' );
-			value = JSON.parse( control.setting() );
-
-			_.each( control.routeData.schema.properties, function( fieldData, fieldId ) {
-				var input, element, li, label, domId;
-				domId = 'element' + String( Math.random() );
-				li = jQuery( '<li>' );
-				label = jQuery( '<label></label>', {
-					'for': domId,
-					text: fieldId
-				} );
-				li.append( label );
-				input = jQuery( '<input>', {
-					id: domId,
-					readonly: fieldData.readonly
-				} );
-				if ( _.isObject( value[ fieldId ] ) ) {
-					input.val( value[ fieldId ].raw || value[ fieldId ].rendered ); // @todo what if raw not available?
-				} else {
-					input.val( value[ fieldId ] );
-				}
-				li.append( input );
-				ul.append( li );
-				// @todo element = new wp.customize.Element( input );
-			} );
-			elementContainer.append( ul );
-
-			// @todo Given schema exported from PHP, iterate over endpoints and find options matching to then generate the controls to inject into the control.
-			// @todo How to handle raw vs rendered? (Ultimately it is using server-side.)
+			return;
 		}
+
+		ul = jQuery( '<ul>' );
+		_.each( control.routeData.schema.properties, function( fieldData, fieldId ) {
+			var field = control.createRouteFieldElement( fieldId );
+			ul.append( field.container );
+		} );
+		elementContainer.append( ul );
+
+		// @todo Underscore template, let us be able to define the template for each route. This is essential because each resource type can have tailored field orders.
+		// @todo Given schema exported from PHP, iterate over endpoints and find options matching to then generate the controls to inject into the control.
+		// @todo How to handle raw vs rendered? (Ultimately it is using server-side.)
+	},
+
+	/**
+	 * Create a new Element for a given Route field.
+	 *
+	 * @param {string} fieldId
+	 * @returns {{element: *, container: *}|null}
+	 */
+	createRouteFieldElement: function( fieldId ) {
+		var control = this, fieldSchema, elementValue, settingValue, element, input, container, domElementId, hasRaw, isNestedFallbackInput, matches;
+		domElementId  = 'element.' + control.route + '.' + fieldId;
+		fieldSchema = control.routeData.schema.properties[ fieldId ];
+		settingValue = control.parsedSettingValue.get();
+		hasRaw = false;
+
+		container = jQuery( '<li>' );
+		container.append( jQuery( '<label>', {
+			text: fieldId,
+			'for': domElementId
+		} ) );
+
+		// @todo Handle recursive.
+
+		// Handled nested raw/rendered objects, promoting the raw value to the top-level.
+		if ( fieldSchema.type === 'object' ) {
+			if ( fieldSchema.properties && fieldSchema.properties.raw && ! _.isUndefined( settingValue[ fieldId ].raw ) ) {
+				fieldSchema = fieldSchema.properties.raw;
+				hasRaw = true;
+			}
+		}
+
+		// @todo Implement nested/recursive properties (other than raw).
+		isNestedFallbackInput = ( 'object' === fieldSchema.type || 'array' === fieldSchema.type );
+
+		if ( isNestedFallbackInput ) {
+			input = jQuery( '<textarea>' );
+		} else if ( fieldSchema['enum'] ) {
+			input = jQuery( '<select>' );
+			_.each( fieldSchema['enum'], function( optionValue ) {
+				input.append( jQuery( '<option>', {
+					text: optionValue
+				} ) );
+			} );
+		} else {
+			input = jQuery( '<input>' );
+			if ( 'integer' === fieldSchema.type || 'number' === fieldSchema.type ) {
+				input.attr( 'type', 'number' );
+				if ( 'integer' === fieldSchema.type ) {
+					input.attr( 'step', '1' );
+				}
+				if ( fieldSchema.maximum ) {
+					input.attr( 'max', fieldSchema.maximum );
+				}
+				if ( fieldSchema.minimum ) {
+					input.attr( 'min', fieldSchema.minimum );
+				}
+			} else if ( 'number' === fieldSchema.type ) {
+				input.attr( 'type', 'number' );
+			} else if ( 'boolean' === fieldSchema.type ) {
+				input.attr( 'type', 'checkbox' );
+			} else if ( 'uri' === fieldSchema.format ) {
+				input.attr( 'type', 'url' );
+			} else if ( 'email' === fieldSchema.format ) {
+				input.attr( 'type', 'email' );
+			} else if ( 'string' === fieldSchema.type ) {
+				// @todo if ( 'date-time' === fieldSchema.format ) { input.attr( 'type', 'datetime-local' ); }
+				input.attr( 'type', 'text' );
+				if ( fieldSchema.maxLength ) {
+					input.attr( 'maxlength', fieldSchema.maxLength );
+				}
+				if ( fieldSchema.minLength ) {
+					input.attr( 'minlength', fieldSchema.minLength );
+				}
+			}
+
+			if ( fieldSchema.pattern ) {
+				input.attr( 'pattern', '^(' + fieldSchema.pattern + ')$' );
+			}
+		}
+
+		// @todo Implement more JSON Schema validation constraints.
+
+		input.attr({
+			id: domElementId,
+			name: domElementId,
+			'data-field-id': fieldId,
+			title: fieldSchema.description
+		});
+		if ( fieldSchema.readonly ) {
+			input.prop( 'readonly', true );
+		}
+
+		container.append( input );
+
+		element = new wp.customize.Element( input );
+		if ( hasRaw ) {
+			elementValue = settingValue[ fieldId ].raw;
+		} else {
+			elementValue = settingValue[ fieldId ];
+		}
+
+		// Make GMT dates readonly if there is a corresponding non-GMT field in the schema.
+		matches = fieldId.match( /^(.+)_gmt$/ );
+		if ( matches && ! _.isUndefined( control.routeData.schema.properties[ matches[1] ] ) ) {
+			input.prop( 'readonly', true );
+			// @todo We could do some client-side translation of the local time to GMT.
+		}
+
+		element.validate = function ( value ) {
+			if ( isNestedFallbackInput ) {
+				// For JSON fields.
+				if ( ! _.isString( value ) ) {
+					value = JSON.stringify( value );
+				}
+			}
+			return value;
+		};
+
+		element.set( elementValue );
+		control.parsedSettingValue.bind( function( settingValue ) {
+			var elementValue;
+			if ( hasRaw ) {
+				elementValue = settingValue[ fieldId ].raw;
+			} else {
+				elementValue = settingValue[ fieldId ];
+			}
+			element.set( elementValue );
+		} );
+
+		element.bind( function ( fieldElementValue ) {
+			var resourceSettingValue, date;
+			resourceSettingValue = control.parsedSettingValue.get();
+
+			// @todo prevent recursion?
+
+			if ( 'number' === fieldSchema.type || 'integer' === fieldSchema.type ) {
+				fieldElementValue = Number( fieldElementValue );
+			} else if ( isNestedFallbackInput ) {
+				try {
+					fieldElementValue = JSON.parse( fieldElementValue );
+					container.removeClass( 'json-parse-error' );
+					input[0].setCustomValidity( '' );
+				} catch ( e ) {
+					container.addClass( 'json-parse-error' );
+					input[0].setCustomValidity( e.message );
+					return;
+				}
+			}
+
+			if ( hasRaw ) {
+				resourceSettingValue[ fieldId ].raw = fieldElementValue;
+
+				// @todo We need to do a round-trip to the server to get the actual rendered value.
+				resourceSettingValue[ fieldId ].rendered = fieldElementValue;
+			} else {
+				resourceSettingValue[ fieldId ] = fieldElementValue;
+			}
+			control.setting.set( JSON.stringify( resourceSettingValue ) );
+		} );
+
+		return {
+			element: element,
+			container: container
+		};
 	}
 });

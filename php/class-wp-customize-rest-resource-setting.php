@@ -350,6 +350,7 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 					$response['customize_rest_resources_save_errors'] = array();
 				}
 				$response['customize_rest_resources_save_errors'][ $this->id ] = $rest_response->as_error()->get_error_message();
+				return $response;
 			} );
 			return false;
 		}

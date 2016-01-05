@@ -24,3 +24,17 @@
 .customize-control-rest_resource .customize-setting-validation-message.error {
 	display: none;
 }
+
+.customize-control-rest_resource label {
+	display: block;
+}
+.customize-control-rest_resource select {
+	width: 98%;
+	line-height: 18px;
+	margin: 0;
+}
+
+.customize-control-rest_resource .json-parse-error textarea {
+	border-color:     red;
+	background-color: #ffdddd;
+}

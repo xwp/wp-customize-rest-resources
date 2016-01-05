@@ -33,6 +33,7 @@ CustomizeRestResources.RestResourcesPaneManager = CustomizeRestResources.RestRes
 				manager.ensureSetting( resource );
 			} );
 			wp.customize.previewer.bind( 'rest-resource-setting-postmessage-transport-eligible', _.bind( manager.setPostMessageTransport, manager ) );
+			wp.customize.bind( 'saved', _.bind( manager.handleSaveErrors, manager )) ;
 		});
 	},
 
@@ -105,6 +106,27 @@ CustomizeRestResources.RestResourcesPaneManager = CustomizeRestResources.RestRes
 			}
 		} );
 		wp.customize.previewer.send( 'rest-resource-dirty-setting', dirtySettingIds );
+	},
+
+	/**
+	 * Handle setting save errors that made it through the sanitization/validation checks.
+	 *
+	 * @param {object} response
+	 * @param {object} [response.customize_rest_resources_save_errors]
+	 */
+	handleSaveErrors: function( response ) {
+		if ( ! response.customize_rest_resources_save_errors ) {
+			return;
+		}
+		_.each( response.customize_rest_resources_save_errors, function( errorMessage, settingId ) {
+			var setting = wp.customize( settingId );
+			if ( ! setting ) {
+				return;
+			}
+			if ( setting.validationMessage ) {
+				setting.validationMessage.set( errorMessage );
+			}
+		} );
 	},
 
 	/**
