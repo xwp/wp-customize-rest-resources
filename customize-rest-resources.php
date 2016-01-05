@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Customize REST Resources
  * Plugin URI: https://github.com/xwp/wp-customize-rest-resources
- * Description: ...
+ * Description: Edit any resource fetched from the WP REST API in the Customizer, with fields automatically constructed from the schema.
  * Version: 0.1
  * Author:  XWP
  * Author URI: https://xwp.co/
