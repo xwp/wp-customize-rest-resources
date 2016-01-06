@@ -10,11 +10,13 @@ Edit any resource fetched from the WP REST API in the Customizer, with fields au
 
 == Description ==
 
+*See the [Bridging the Customizer and the WP REST API](https://make.xwp.co/2016/01/06/bridging-the-customizer-and-the-wp-rest-api/) introductory post.*
+
 The WP REST API provides a rich machine-readable interface for programmatically making changes to WordPress. The changes made, however, cannot be previewed. The Customizer is WordPress's framework for live previewing any change, and this can include changes made to REST resources. And this is what this plugin implements. The REST endpoints provide a uniform abstraction layer on top of a diverse array of WordPress API calls. Implementing Customizer setting for all of WordPress's object types would require creating a new `WP_Customize_Setting` subclass for each with unique implementations for the `update`, `value`, `sanitize`, and `preview` methods. With the REST API, however, we have a uniform input (request) and output (response) interface that a single Customizer setting can be implemented to interact with. Each REST resource is represented by a Customizer setting. Since each endpoint (should) provide a schema for describing what the resources at those endpoints look like, the Customizer can read from this schema to `sanitize` and validate the REST resource prior to being sent along for `update`. Implementing `preview` for a REST resource involves filtering the REST Server response.
 
 With the REST API providing a schema for a given resource, we also have the ability to automatically generate the controls for this resource with fields that have the appropriate control types (dropdowns, checkboxes, etc) and value types (boolean, integer, string, etc).
 
-When the WP API JS client is used, where REST resources are encapsulated in Backbone models, this plugin will opt-in the relevant REST resoruce setting for `postMessage` transport. Assuming that the JS app is developed in a way where the view will be re-rendered in response to model changes, when the Customizer syncs a setting for a REST resource into the preview, the model can likewise be updated when the setting is changed in the preview, resulting in a live preview of a JS application in the Customizer without any full-page refresh or even selective refresh ([#27355](https://core.trac.wordpress.org/ticket/27355)).
+When the WP API JS client is used, where REST resources are encapsulated in Backbone models, this plugin will opt-in the relevant REST resource setting for `postMessage` transport. Assuming that the JS app is developed in a way where the view will be re-rendered in response to model changes, when the Customizer syncs a setting for a REST resource into the preview, the model can likewise be updated when the setting is changed in the preview, resulting in a live preview of a JS application in the Customizer without any full-page refresh or even selective refresh ([#27355](https://core.trac.wordpress.org/ticket/27355)).
 
 This plugin is closely related to the [Customizer Transactions](https://make.wordpress.org/core/2015/01/26/customizer-transactions-proposal/) proposal in that it allows Ajax requests made in the Customizer preview to have customizations applied to them. With Transactions the customizations would apply to all requests, but with this plugin they only apply to the REST API requests made to the site's endpoint.
 
@@ -35,3 +37,9 @@ Please note that this plugin depends on the bleeding-edge development version of
 * Fields that have `raw` and `rendered` properties will be exposed as a single input tied to the `raw` property. Modifying the `raw` will supply the `raw` value to the `rendered` property. In the future, there should be an Ajax request which applies the rendering logic to the `raw` value so that it can be previewed properly.
 * Only existing REST resources can be customized. It is not yet possible to create new resources in the Customizer.
 
+== Screenshots ==
+
+1. REST resources used in preview are added as controls in the REST Resources panel.
+2. Fields in the REST resource control are created from the schema.
+3. New REST resources fetched via Ajax are automatically added to the REST Resources panel.
+4. JS apps using the WP API Backbone client get live preview `postMessage` updates.
