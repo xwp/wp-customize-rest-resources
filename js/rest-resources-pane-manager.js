@@ -17,6 +17,8 @@ CustomizeRestResources.RestResourcesPaneManager = CustomizeRestResources.RestRes
 		CustomizeRestResources.RestResourcesManager.prototype.initialize.call( manager, args );
 		manager.schema = args.schema || {};
 
+		manager.timezoneOffsetString = args.timezoneOffsetString || 'Z';
+
 		wp.customize.sectionConstructor.rest_resources = CustomizeRestResources.RestResourcesSection;
 		wp.customize.controlConstructor.rest_resource = CustomizeRestResources.RestResourceControl;
 

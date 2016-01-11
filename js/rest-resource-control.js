@@ -141,17 +141,28 @@ CustomizeRestResources.RestResourceControl = wp.customize.Control.extend({
 	},
 
 	/**
+	 * Return whether the supplied string has a timezone identifier suffix.
+	 *
+	 * @param {string} datetimeString
+	 * @returns {boolean}
+	 */
+	hasTimezoneSufix: function( datetimeString ) {
+		return /(Z|[-+]\d\d:?\d\d)$/.test( datetimeString );
+	},
+
+	/**
 	 * Create a new Element for a given Route field.
 	 *
 	 * @param {string} fieldId
 	 * @returns {{element: *, container: *}|null}
 	 */
 	createRouteFieldElement: function( fieldId ) {
-		var control = this, fieldSchema, elementValue, settingValue, element, input, container, domElementId, hasRaw, isNestedFallbackInput, matches;
+		var control = this, fieldSchema, elementValue, settingValue, element, input, container, domElementId, hasRaw, isNestedFallbackInput, matches, isDateGMT;
 		domElementId  = 'element.' + control.route + '.' + fieldId;
 		fieldSchema = control.routeData.schema.properties[ fieldId ];
 		settingValue = control.parsedSettingValue.get();
 		hasRaw = false;
+		isDateGMT = false;
 
 		container = jQuery( '<li>' );
 		container.append( jQuery( '<label>', {
@@ -242,8 +253,9 @@ CustomizeRestResources.RestResourceControl = wp.customize.Control.extend({
 
 		// Make GMT dates readonly if there is a corresponding non-GMT field in the schema.
 		matches = fieldId.match( /^(.+)_gmt$/ );
-		if ( matches && ! _.isUndefined( control.routeData.schema.properties[ matches[1] ] ) ) {
+		if ( matches && 'date-time' === fieldSchema.format && ! _.isUndefined( control.routeData.schema.properties[ matches[1] ] ) ) {
 			input.prop( 'readonly', true );
+			isDateGMT = true;
 
 			// @todo We could do some client-side translation of the local time to GMT.
 		}
@@ -254,6 +266,12 @@ CustomizeRestResources.RestResourceControl = wp.customize.Control.extend({
 				// For JSON fields.
 				if ( ! _.isString( value ) ) {
 					value = JSON.stringify( value );
+				}
+			} else if ( value && 'date-time' === fieldSchema.format && ! control.hasTimezoneSufix( value ) ) {
+				if ( isDateGMT ) {
+					value += 'Z';
+				} else {
+					value += CustomizeRestResources.manager.timezoneOffsetString;
 				}
 			}
 			return value;
