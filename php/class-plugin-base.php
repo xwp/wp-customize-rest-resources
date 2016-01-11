@@ -1,6 +1,7 @@
 <?php
 /**
  * Class Plugin_Base
+ *
  * @package CustomizeRESTResources
  */
 
@@ -8,6 +9,7 @@ namespace CustomizeRESTResources;
 
 /**
  * Class Plugin_Base
+ *
  * @package CustomizeRESTResources
  */
 abstract class Plugin_Base {
