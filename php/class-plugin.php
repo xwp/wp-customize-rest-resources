@@ -267,6 +267,7 @@ class Plugin extends Plugin_Base {
 			'previewNonce' => wp_create_nonce( 'preview-customize_' . $wp_customize->get_stylesheet() ),
 			'restApiRoot' => get_rest_url(),
 			'schema' => $schema,
+			'timezoneOffsetString' => $this->get_timezone_offset_string(),
 		);
 		?>
 		<script>
@@ -274,6 +275,31 @@ class Plugin extends Plugin_Base {
 		CustomizeRestResources.manager = new CustomizeRestResources.RestResourcesPaneManager( <?php echo wp_json_encode( $args ) ?> );
 		</script>
 		<?php
+	}
+
+	/**
+	 * Get timezone offset string.
+	 *
+	 * @return string
+	 */
+	public function get_timezone_offset_string() {
+		$tz_str = get_option( 'timezone_string' );
+		$gmt_offset = get_option( 'gmt_offset' );
+		$offset_str = null;
+		if ( $tz_str ) {
+			$tz = new \DateTimeZone( $tz_str );
+			$date = new \DateTime( 'now', $tz );
+			$offset_str = $date->format( 'P' );
+		} else if ( $gmt_offset ) {
+			$gmt_offset *= 60;
+			$hours = floor( abs( $gmt_offset ) / 60 );
+			$minutes = ( abs( $gmt_offset ) % 60 );
+			$offset_str = ( $gmt_offset < 0 ? '-' : '+' );
+			$offset_str .= sprintf( '%02d:%02d', $hours, $minutes );
+		} else {
+			$offset_str = 'Z';
+		}
+		return $offset_str;
 	}
 
 	/**
