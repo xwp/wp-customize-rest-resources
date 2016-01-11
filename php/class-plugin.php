@@ -100,15 +100,13 @@ class Plugin extends Plugin_Base {
 	/**
 	 * Attempt to upgrade all Customizer REST API requests to use the edit context.
 	 *
-	 * @todo Make sure this works with prefilled Backbone collections.
-	 *
-	 * @param mixed            $result  Response to replace the requested version with. Can be anything
-	 *                                  a normal endpoint can return, or null to not hijack the request.
-	 * @param \WP_REST_Server  $server  Server instance.
-	 * @param \WP_REST_Request $request Original request used to generate the response.
-	 * @return \WP_REST_Response Dispatch result if successful.
+	 * @param null|\WP_REST_Response $result  Response to replace the requested version with. Can be anything
+	 *                                        a normal endpoint can return, or null to not hijack the request.
+	 * @param \WP_REST_Server        $server  Server instance.
+	 * @param \WP_REST_Request       $request Original request used to generate the response.
+	 * @return null|\WP_REST_Response Dispatch result if successful, or null if the upgrade was not possible.
 	 */
-	public function use_edit_context_for_requests( $result, $server, $request ) {
+	public function use_edit_context_for_requests( $result, \WP_REST_Server $server, \WP_REST_Request $request ) {
 		if ( null !== $result || 'edit' === $request['context'] || ! is_customize_preview() ) {
 			return $result;
 		}

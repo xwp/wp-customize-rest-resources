@@ -39,15 +39,6 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 	public $route;
 
 	/**
-	 * Request that is initialized when sanitizing.
-	 *
-	 * @see WP_Customize_REST_Resource_Setting::sanitize()
-	 *
-	 * @var \WP_REST_Request
-	 */
-	public $request;
-
-	/**
 	 * Previewed settings by route.
 	 *
 	 * @var WP_Customize_REST_Resource_Setting[]
@@ -111,18 +102,38 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 		}
 
 		$route = '/' . ltrim( $this->route, '/' );
-		$this->request = new \WP_REST_Request( 'PUT', $route );
-		$this->request->set_body( $value );
+		$request = new \WP_REST_Request( 'PUT', $route );
+		$request->set_body( $value );
 
 		$validity_errors = new \WP_Error();
 
-		add_filter( 'rest_dispatch_request', '__return_false' );
-		$this->plugin->get_rest_server()->dispatch( $this->request );
-		remove_filter( 'rest_dispatch_request', '__return_false' );
+		/**
+		 * Make sure the upgraded edit-context request is obtained so we can access the necessary args.
+		 *
+		 * @see \CustomizeRESTResources\Plugin::use_edit_context_for_requests()
+		 *
+		 * @param $dispatch_result
+		 * @param \WP_REST_Request $dispatched_request
+		 *
+		 * @return bool
+		 */
+		$intercept_request_dispatch = function ( $dispatch_result, \WP_REST_Request $dispatched_request ) use ( &$request ) {
+			unset( $dispatch_result );
+			$request = $dispatched_request;
+			return false;
+		};
 
-		$data = json_decode( $this->request->get_body(), true );
+		add_filter( 'rest_dispatch_request', $intercept_request_dispatch, 10, 2 );
+		$this->plugin->get_rest_server()->dispatch( $request );
+		remove_filter( 'rest_dispatch_request', $intercept_request_dispatch );
+
+		$data = json_decode( $request->get_body(), true );
 		unset( $data['_embedded'] );
-		$attributes = $this->request->get_attributes();
+		$attributes = $request->get_attributes();
+		if ( ! isset( $attributes['args'] ) ) {
+			trigger_error( "Unable to gather args for $this->id", E_USER_WARNING ); // WPCS: XSS OK.
+			return null;
+		}
 		$args = $attributes['args'];
 		foreach ( array_keys( $data ) as $key ) {
 			if ( ! isset( $args[ $key ] ) || ! isset( $data[ $key ] ) ) {
@@ -130,10 +141,10 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 			}
 			$value = $data[ $key ];
 			if ( isset( $args[ $key ]['sanitize_callback'] ) ) {
-				$value = call_user_func( $args[ $key ]['sanitize_callback'], $value, $this->request, $key );
+				$value = call_user_func( $args[ $key ]['sanitize_callback'], $value, $request, $key );
 			}
 			if ( $strict && isset( $args[ $key ]['validate_callback'] ) ) {
-				$validity = call_user_func( $args[ $key ]['validate_callback'], $value, $this->request, $key );
+				$validity = call_user_func( $args[ $key ]['validate_callback'], $value, $request, $key );
 				if ( is_wp_error( $validity ) ) {
 					foreach ( $validity->errors as $code => $message ) {
 						$validity_errors->add( $code, $message, $validity->get_error_data( $code ) );
