@@ -22,12 +22,17 @@ CustomizeRestResources.RestResourcesPreviewManager = CustomizeRestResources.Rest
 		 * This is used when a script in the preview attempts to make a request
 		 * to the REST API before the Customizer settings are initialized.
 		 *
+		 * @todo Remove this once #35616 is available.
+		 *
 		 * @type {Object.<string, *>}
 		 */
 		manager.initialDirtySettingValues = args.initialDirtySettingValues || {};
 
 		/**
 		 * List of the IDs for settings that are dirty.
+		 *
+		 * @todo Reset this once saved happens.
+		 * @todo Remove this once #35616 is available.
 		 *
 		 * @type {Array}
 		 */
@@ -46,6 +51,7 @@ CustomizeRestResources.RestResourcesPreviewManager = CustomizeRestResources.Rest
 
 			wp.customize.preview.bind( 'setting', _.bind( manager.receiveSetting, manager ) );
 
+			// @todo Remove this once #35616 is available.
 			// Keep track of which settings are dirty.
 			wp.customize.preview.bind( 'rest-resource-dirty-setting', function( settingIds ) {
 				_.each( settingIds, function( settingId ) {

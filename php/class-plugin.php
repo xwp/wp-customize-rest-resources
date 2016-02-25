@@ -157,7 +157,7 @@ class Plugin extends Plugin_Base {
 	public function show_missing_rest_api_admin_notice() {
 		?>
 		<div class="error">
-			<p><?php esc_html_e( 'The Customize REST Resources plugin requires the WordPress REST API to be available and enabled.', 'customize-rest-resources' ); ?></p>
+			<p><?php esc_html_e( 'The Customize REST Resources plugin requires the WordPress REST API to be available and enabled, including the WP-API plugin.', 'customize-rest-resources' ); ?></p>
 		</div>
 		<?php
 	}
@@ -239,6 +239,10 @@ class Plugin extends Plugin_Base {
 	 * @action customize_controls_enqueue_scripts
 	 */
 	public function enqueue_customize_controls_scripts() {
+		if ( ! wp_script_is( 'wp-api', 'registered' ) ) {
+			return;
+		}
+
 		wp_enqueue_style( 'customize-rest-resources-pane' );
 		wp_enqueue_script( 'customize-rest-resources-pane-manager' );
 		add_action( 'customize_controls_print_footer_scripts', array( $this, 'boot_pane_script' ), 100 );
@@ -317,6 +321,10 @@ class Plugin extends Plugin_Base {
 	 * @action wp_enqueue_scripts
 	 */
 	public function enqueue_customize_preview_scripts() {
+		if ( ! wp_script_is( 'wp-api', 'registered' ) ) {
+			return;
+		}
+
 		wp_enqueue_script( 'customize-rest-resources-preview-manager' );
 		add_action( 'wp_head', array( $this, 'boot_preview_script' ), 1000 );
 	}
