@@ -85,20 +85,25 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 	/**
 	 * Sanitize (and validate) an input.
 	 *
-	 * @param string $value   The value to sanitize.
-	 * @param bool   $strict  Whether validation is being done. This is part of the proposed patch in in #34893.
-	 * @return string|array|null Null if an input isn't valid, otherwise the sanitized value.
+	 * @param string $value The JSON value to sanitize.
+	 * @return string|\WP_Error Error if an input isn't valid, otherwise the sanitized value.
 	 */
-	public function sanitize( $value, $strict = false ) {
-		unset( $setting );
-
-		// The customize_validate_settings action is part of the Customize Setting Validation plugin.
-		if ( ! $strict && doing_action( 'customize_validate_settings' ) ) {
-			$strict = true;
-		}
-
+	public function sanitize( $value ) {
 		$route = '/' . ltrim( $this->route, '/' );
 		$request = new \WP_REST_Request( 'PUT', $route );
+
+		$parsed_value = json_decode( $value, true );
+		if ( json_last_error() ) {
+			if ( function_exists( 'json_last_error_msg' ) ) {
+				$error_message = sprintf( __( 'JSON Error: %s', 'customize-rest-resources' ), json_last_error_msg() );
+			} else {
+				$error_message = __( 'JSON Syntax Error', 'customize-rest-resources' );
+			}
+			return new \WP_Error( 'json_error', $error_message, array( 'code' => json_last_error() ) );
+		} elseif ( ! is_array( $parsed_value ) ) {
+			return new \WP_Error( 'invalid_value', __( 'Expected object value.', 'customize-rest-resources' ) );
+		}
+
 		$request->set_body( $value );
 
 		$validity_errors = new \WP_Error();
@@ -110,7 +115,6 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 		 *
 		 * @param $dispatch_result
 		 * @param \WP_REST_Request $dispatched_request
-		 *
 		 * @return bool
 		 */
 		$intercept_request_dispatch = function ( $dispatch_result, \WP_REST_Request $dispatched_request ) use ( &$request ) {
@@ -135,19 +139,23 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 			if ( ! isset( $args[ $key ] ) || ! isset( $data[ $key ] ) ) {
 				continue;
 			}
-			$value = $data[ $key ];
-			if ( isset( $args[ $key ]['sanitize_callback'] ) ) {
-				$value = call_user_func( $args[ $key ]['sanitize_callback'], $value, $request, $key );
-			}
-			if ( $strict && isset( $args[ $key ]['validate_callback'] ) ) {
+			$valid = true;
+			if ( isset( $args[ $key ]['validate_callback'] ) ) {
 				$validity = call_user_func( $args[ $key ]['validate_callback'], $value, $request, $key );
 				if ( is_wp_error( $validity ) ) {
 					foreach ( $validity->errors as $code => $message ) {
 						$validity_errors->add( $code, $message, $validity->get_error_data( $code ) );
 					}
+					$valid = false;
 				}
 			}
-			$data[ $key ] = $value;
+			if ( $valid ) {
+				$value = $data[ $key ];
+				if ( isset( $args[ $key ]['sanitize_callback'] ) ) {
+					$value = call_user_func( $args[ $key ]['sanitize_callback'], $value, $request, $key );
+				}
+				$data[ $key ] = $value;
+			}
 		}
 
 		if ( count( $validity_errors->errors ) > 0 ) {

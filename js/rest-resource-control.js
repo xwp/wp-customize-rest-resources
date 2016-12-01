@@ -76,6 +76,10 @@ CustomizeRestResources.RestResourceControl = wp.customize.Control.extend({
 			var setting = this, parsedValue, notification;
 			try {
 				parsedValue = JSON.parse( newValue );
+				if ( ! _.isObject( parsedValue ) ) {
+					throw new Error( CustomizeRestResources.manager.l10n.expectedObjectValue );
+				}
+
 				control.container.removeClass( 'syntax-error' );
 				setting.notifications.remove( 'json_error' );
 

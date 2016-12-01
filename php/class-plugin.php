@@ -228,6 +228,9 @@ class Plugin extends Plugin_Base {
 			'restApiRoot' => get_rest_url(),
 			'schema' => $schema,
 			'timezoneOffsetString' => $this->get_timezone_offset_string(),
+			'l10n' => array(
+				'expectedObjectValue' => __( 'Expected object value.', 'customize-rest-resources' ),
+			),
 		);
 		?>
 		<script>
