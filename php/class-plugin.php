@@ -251,7 +251,7 @@ class Plugin extends Plugin_Base {
 			$tz = new \DateTimeZone( $tz_str );
 			$date = new \DateTime( 'now', $tz );
 			$offset_str = $date->format( 'P' );
-		} else if ( $gmt_offset ) {
+		} elseif ( $gmt_offset ) {
 			$gmt_offset *= 60;
 			$hours = floor( abs( $gmt_offset ) / 60 );
 			$minutes = ( abs( $gmt_offset ) % 60 );
