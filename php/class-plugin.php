@@ -48,53 +48,10 @@ class Plugin extends Plugin_Base {
 		add_action( 'customize_dynamic_setting_class', array( $this, 'filter_dynamic_setting_class' ), 10, 3 );
 		add_action( 'rest_api_init', array( $this, 'remove_customize_signature' ) );
 
-		add_filter( 'wp_rest_server_class', array( $this, 'filter_wp_rest_server_class' ), 100 );
 		add_filter( 'rest_pre_dispatch', array( $this, 'use_edit_context_for_requests' ), 10, 3 );
 		add_filter( 'rest_post_dispatch', array( $this, 'export_context_with_response' ), 10, 3 );
 
 		add_action( 'customize_controls_print_footer_scripts', array( $this, 'print_templates' ) );
-	}
-
-	/**
-	 * Get instance of WP_REST_Server.
-	 *
-	 * @todo This should be part of Core.
-	 *
-	 * @return \WP_REST_Server
-	 */
-	public function get_rest_server() {
-		/**
-		 * REST Server.
-		 *
-		 * @var \WP_REST_Server $wp_rest_server
-		 */
-		global $wp_rest_server;
-		if ( empty( $wp_rest_server ) ) {
-			/** This filter is documented in wp-includes/rest-api.php */
-			$wp_rest_server_class = apply_filters( 'wp_rest_server_class', 'WP_REST_Server' );
-			$wp_rest_server = new $wp_rest_server_class();
-
-			/** This filter is documented in wp-includes/rest-api.php */
-			do_action( 'rest_api_init', $wp_rest_server );
-		}
-		return $wp_rest_server;
-	}
-
-	/**
-	 * Filter the WP_REST_Server to be our Customizer subclass.
-	 *
-	 * @param string $class Class name.
-	 * @return string
-	 */
-	public function filter_wp_rest_server_class( $class ) {
-		if ( is_customize_preview() ) {
-			if ( 'WP_REST_Server' !== $class ) {
-				trigger_error( esc_html( sprintf( 'Cannot filter wp_rest_server_class because $class is not "WP_REST_Server" (got "%s" instead).', $class ) ), \E_USER_WARNING );
-			} else {
-				$class = __NAMESPACE__ . '\\WP_Customize_REST_Server';
-			}
-		}
-		return $class;
 	}
 
 	/**
@@ -258,7 +215,7 @@ class Plugin extends Plugin_Base {
 		global $wp_customize;
 		wp_print_scripts( array( 'customize-rest-resources-pane-manager' ) );
 
-		$rest_server = $this->get_rest_server();
+		$rest_server = \rest_get_server();
 		$rest_request = new \WP_REST_Request( 'GET', '/' );
 		$rest_response = $rest_server->dispatch( $rest_request );
 		if ( $rest_response->is_error() ) {
