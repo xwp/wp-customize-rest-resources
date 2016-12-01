@@ -75,7 +75,7 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 	public function preview() {
 		$callback = array( __CLASS__, 'filter_rest_post_dispatch' );
 		if ( ! has_filter( 'rest_post_dispatch', $callback ) ) {
-			add_filter( 'rest_post_dispatch', $callback, 20, 3 );
+			add_filter( 'rest_post_dispatch', $callback, 20 );
 		}
 		static::$previewed_routes[ $this->route ] = $this;
 		$this->is_previewed = true;
@@ -166,17 +166,9 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 	 * used in our WP_REST_Server subclass.
 	 *
 	 * @param \WP_HTTP_Response $result  Result to send to the client. Usually a \WP_REST_Response.
-	 * @param \WP_REST_Server   $server  Server instance.
-	 * @param \WP_REST_Request  $request Request used to generate the response.
 	 * @return \WP_REST_Response
 	 */
-	static public function filter_rest_post_dispatch( $result, $server, $request ) {
-		// Skip filtering on rest_post_dispatch if our server subclass is used.
-		if ( $server instanceof WP_Customize_REST_Server ) {
-			return $result;
-		}
-
-		unset( $request );
+	static public function filter_rest_post_dispatch( $result ) {
 		$data = $result->get_data();
 
 		$links = null;
