@@ -137,12 +137,11 @@ CustomizeRestResources.RestResourcesPreviewManager = CustomizeRestResources.Rest
 	 * This method should be called whenever a JS model (e.g. Backbone Model) is used to represent a REST resource.
 	 *
 	 * @param {string} settingId
-	 * @param {object} resource
 	 */
-	notifySettingPostMessageTransportEligible: function( settingId, resource ) {
+	notifySettingPostMessageTransportEligible: function( settingId ) {
 		var manager = this;
 		manager.previewActive.done( function() {
-			wp.customize.preview.send( 'rest-resource-setting-postmessage-transport-eligible', settingId, resource );
+			wp.customize.preview.send( 'rest-resource-setting-postmessage-transport-eligible', settingId );
 		} );
 	},
 
