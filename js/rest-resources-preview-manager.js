@@ -94,7 +94,15 @@ CustomizeRestResources.RestResourcesPreviewManager = CustomizeRestResources.Rest
 		if ( models ) {
 
 			_.each( models, function( model ) {
-				var resource = JSON.parse( value );
+				var resource;
+				try {
+					resource = JSON.parse( value );
+				} catch ( e ) {
+					if ( typeof console !== 'undefined' ) {
+						console.error( e );
+					}
+					return;
+				}
 
 				// Make sure that any embedded resources get updated to reflect any dirty.
 				if ( resource._embedded ) {
