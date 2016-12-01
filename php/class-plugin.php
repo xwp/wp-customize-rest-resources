@@ -114,7 +114,7 @@ class Plugin extends Plugin_Base {
 	public function show_missing_rest_api_admin_notice() {
 		?>
 		<div class="error">
-			<p><?php esc_html_e( 'The Customize REST Resources plugin requires the WordPress REST API to be available and enabled, including the WP-API plugin.', 'customize-rest-resources' ); ?></p>
+			<p><?php esc_html_e( 'The Customize REST Resources plugin requires the WordPress REST API to be available and enabled, including WordPress 4.7 or the WP-API plugin.', 'customize-rest-resources' ); ?></p>
 		</div>
 		<?php
 	}
