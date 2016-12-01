@@ -46,7 +46,6 @@ class Plugin extends Plugin_Base {
 		add_action( 'customize_register', array( $this, 'customize_register' ), 20 );
 		add_action( 'customize_dynamic_setting_args', array( $this, 'filter_dynamic_setting_args' ), 10, 2 );
 		add_action( 'customize_dynamic_setting_class', array( $this, 'filter_dynamic_setting_class' ), 10, 3 );
-		add_action( 'rest_api_init', array( $this, 'remove_customize_signature' ) );
 
 		add_filter( 'rest_pre_dispatch', array( $this, 'use_edit_context_for_requests' ), 10, 3 );
 		add_filter( 'rest_post_dispatch', array( $this, 'export_context_with_response' ), 10, 3 );
@@ -408,18 +407,5 @@ class Plugin extends Plugin_Base {
 			</div>
 		</script>
 		<?php
-	}
-
-	/**
-	 * Remove the Customizer preview signature during REST API requests since it corrupts the JSON.
-	 *
-	 * @action rest_api_init
-	 */
-	public function remove_customize_signature() {
-		global $wp_customize;
-		if ( ! is_customize_preview() || empty( $wp_customize ) || ! defined( 'REST_REQUEST' ) ) {
-			return;
-		}
-		$wp_customize->remove_preview_signature();
 	}
 }
