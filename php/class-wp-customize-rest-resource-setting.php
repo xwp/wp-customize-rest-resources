@@ -141,10 +141,12 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 			}
 			$valid = true;
 			if ( isset( $args[ $key ]['validate_callback'] ) ) {
-				$validity = call_user_func( $args[ $key ]['validate_callback'], $value, $request, $key );
+				$validity = call_user_func( $args[ $key ]['validate_callback'], $data[ $key ], $request, $key );
 				if ( is_wp_error( $validity ) ) {
-					foreach ( $validity->errors as $code => $message ) {
-						$validity_errors->add( $code, $message, $validity->get_error_data( $code ) );
+					foreach ( $validity->errors as $code => $messages ) {
+						foreach ( $messages as $message ) {
+							$validity_errors->add( $code, $message, $validity->get_error_data( $code ) );
+						}
 					}
 					$valid = false;
 				}
