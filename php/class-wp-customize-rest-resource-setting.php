@@ -77,10 +77,6 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 		if ( ! has_filter( 'rest_post_dispatch', $callback ) ) {
 			add_filter( 'rest_post_dispatch', $callback, 20, 3 );
 		}
-		$callback = array( __CLASS__, 'filter_customize_rest_server_response_data' );
-		if ( ! has_filter( 'customize_rest_server_response_data', $callback ) ) {
-			add_filter( 'customize_rest_server_response_data', $callback );
-		}
 		static::$previewed_routes[ $this->route ] = $this;
 		$this->is_previewed = true;
 		return true;
@@ -159,26 +155,6 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 		}
 
 		return wp_json_encode( $data );
-	}
-
-	/**
-	 * Filter the API response to inject the Customized REST resources.
-	 *
-	 * @param array $data Data.
-	 * @return array Filtered data.
-	 */
-	static public function filter_customize_rest_server_response_data( $data ) {
-		if ( isset( $data['_links'] ) ) {
-			$data = static::filter_single_resource( $data );
-		} else if ( isset( $data[0] ) ) {
-			$data = array_map(
-				function( $item ) {
-					return static::filter_single_resource( $item );
-				},
-				$data
-			);
-		}
-		return $data;
 	}
 
 	/**
