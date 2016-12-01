@@ -338,7 +338,7 @@ class Plugin extends Plugin_Base {
 		) );
 		$wp_customize->add_section( $section );
 
-		// @todo Create a panel with multiple sections correspondng to each endpoint.
+		// @todo Create a panel with multiple sections corresponding to each endpoint.
 		// @todo Mirror this in JS.
 		$i = 0;
 		foreach ( $wp_customize->settings() as $setting ) {

@@ -143,7 +143,7 @@ CustomizeRestResources.RestResourceControl = wp.customize.Control.extend({
 	 * @param {string} datetimeString
 	 * @returns {boolean}
 	 */
-	hasTimezoneSufix: function( datetimeString ) {
+	hasTimezoneSuffix: function( datetimeString ) {
 		return /(Z|[-+]\d\d:?\d\d)$/.test( datetimeString );
 	},
 
@@ -264,7 +264,7 @@ CustomizeRestResources.RestResourceControl = wp.customize.Control.extend({
 				if ( ! _.isString( value ) ) {
 					value = JSON.stringify( value );
 				}
-			} else if ( value && 'date-time' === fieldSchema.format && ! control.hasTimezoneSufix( value ) ) {
+			} else if ( value && 'date-time' === fieldSchema.format && ! control.hasTimezoneSuffix( value ) ) {
 				if ( isDateGMT ) {
 					value += 'Z';
 				} else {
