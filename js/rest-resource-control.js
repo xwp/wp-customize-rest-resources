@@ -73,15 +73,11 @@ CustomizeRestResources.RestResourceControl = wp.customize.Control.extend({
 		control.parsedSettingValue = new wp.customize.Value();
 
 		control.setting.bind( function( newValue ) {
-			var setting = this, parsedValue;
+			var setting = this, parsedValue, notification;
 			try {
 				parsedValue = JSON.parse( newValue );
 				control.container.removeClass( 'syntax-error' );
-
-				// @todo Will this blow away any validation message supplied from the server every time?
-				if ( setting.validationMessage ) {
-					setting.validationMessage.set( '' );
-				}
+				setting.notifications.remove( 'json_error' );
 
 				// Update the parsed setting value which will trigger the updates.
 				if ( ! _.isEqual( parsedValue, control.parsedSettingValue.get() ) ) {
@@ -89,9 +85,10 @@ CustomizeRestResources.RestResourceControl = wp.customize.Control.extend({
 				}
 			} catch ( e ) {
 				control.container.addClass( 'syntax-error' );
-				if ( setting.validationMessage ) {
-					setting.validationMessage.set( e.message );
-				}
+				notification = new wp.customize.Notification( 'json_error', {
+					message: e.message
+				} );
+				setting.notifications.add( notification.code, notification );
 			}
 		} );
 
