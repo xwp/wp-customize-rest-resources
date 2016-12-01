@@ -304,6 +304,9 @@ CustomizeRestResources.RestResourceControl = wp.customize.Control.extend({
 				} catch ( e ) {
 					container.addClass( 'json-parse-error' );
 					input[0].setCustomValidity( e.message );
+					if ( input[0].reportValidity ) {
+						input[0].reportValidity();
+					}
 					return;
 				}
 			}
