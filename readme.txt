@@ -26,9 +26,6 @@ Here's a quick demo of an alpha state of this plugin when used with the [Next Re
 
 [youtube https://youtu.be/d3QMA9Zkwok]
 
-@todo Elimiante prefilterAjax.
-@todo Make sure that still validation works.
-
 == Limitations ==
 
 * Plugin will not be able to customize JSONP requests to the WP REST API, due to how it needs to rewrite Ajax requests using `jQuery.prefilter`.

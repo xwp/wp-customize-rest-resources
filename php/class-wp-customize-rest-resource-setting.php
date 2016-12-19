@@ -188,7 +188,7 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 
 		if ( ! empty( $links ) ) {
 			$data = static::filter_single_resource( $data, $links );
-		} else if ( isset( $data[0] ) ) {
+		} elseif ( isset( $data[0] ) ) {
 			$data = array_map(
 				array( __CLASS__, 'filter_single_resource' ),
 				$data
@@ -284,7 +284,7 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 			foreach ( $field['properties'] as $property_name => $sub_properties ) {
 				$value[ $property_name ] = $this->get_field_default_value( $sub_properties );
 			}
-		} else if ( isset( $field['default'] ) ) {
+		} elseif ( isset( $field['default'] ) ) {
 			$value = $field['default'];
 		} else {
 			// @todo Try to provide default values based on type?
