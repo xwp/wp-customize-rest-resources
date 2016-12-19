@@ -26,9 +26,8 @@ Here's a quick demo of an alpha state of this plugin when used with the [Next Re
 
 [youtube https://youtu.be/d3QMA9Zkwok]
 
-This plugin works best with the [Customize Setting Validation](https://github.com/xwp/wp-customize-setting-validation) feature plugin.
-
-Please note that this plugin depends on the bleeding-edge development version of the [Backbone JS client for the WP-API](https://github.com/WP-API/client-js), which as of 2016-01-05 was not yet upstreamed into the main [WP-API plugin](https://github.com/WP-API/WP-API).
+@todo Elimiante prefilterAjax.
+@todo Make sure that still validation works.
 
 == Limitations ==
 

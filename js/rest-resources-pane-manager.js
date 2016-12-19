@@ -1,4 +1,4 @@
-/* global CustomizeRestResources, wp, JSON */
+/* global CustomizeRestResources, wp, JSON, console */
 
 /**
  * Rest Resource Pane Manager.
@@ -24,11 +24,6 @@ CustomizeRestResources.RestResourcesPaneManager = CustomizeRestResources.RestRes
 		wp.customize.controlConstructor.rest_resource = CustomizeRestResources.RestResourceControl;
 
 		wp.customize.bind( 'ready', function() {
-			var callback = _.bind( manager.notifyDirtySetting, manager );
-			manager.notifyDirtySettings();
-			wp.customize.bind( 'add', callback );
-			wp.customize.bind( 'change', callback );
-			wp.customize.bind( 'saved', callback );
 			wp.customize.previewer.bind( 'rest-resource-previewed', function( resource ) {
 				if ( _.isString( resource ) ) {
 					resource = JSON.parse( resource );
@@ -38,6 +33,9 @@ CustomizeRestResources.RestResourcesPaneManager = CustomizeRestResources.RestRes
 			wp.customize.previewer.bind( 'rest-resource-setting-postmessage-transport-eligible', _.bind( manager.setPostMessageTransport, manager ) );
 			wp.customize.bind( 'saved', _.bind( manager.handleSaveErrors, manager ) ) ;
 		});
+
+		// @todo Core should handle this automatically in the controls pane just as it is done in the preview.
+		jQuery.ajaxPrefilter( 'json', _.bind( manager.prefilterAjax, manager ) );
 	},
 
 	/**
@@ -88,30 +86,6 @@ CustomizeRestResources.RestResourcesPaneManager = CustomizeRestResources.RestRes
 	},
 
 	/**
-	 * Notify the preview of a dirty setting.
-	 *
-	 * @param {wp.customize.Setting} setting
-	 */
-	notifyDirtySetting: function( setting ) {
-		if ( setting._dirty ) {
-			wp.customize.previewer.send( 'rest-resource-dirty-setting', [ setting.id ] );
-		}
-	},
-
-	/**
-	 * Notify preview of all dirty settings.
-	 */
-	notifyDirtySettings: function() {
-		var dirtySettingIds = [];
-		wp.customize.each( function( value, key ) {
-			if ( value._dirty ) {
-				dirtySettingIds.push( key );
-			}
-		} );
-		wp.customize.previewer.send( 'rest-resource-dirty-setting', dirtySettingIds );
-	},
-
-	/**
 	 * Handle setting save errors that made it through the sanitization/validation checks.
 	 *
 	 * @param {object} response
@@ -133,16 +107,63 @@ CustomizeRestResources.RestResourcesPaneManager = CustomizeRestResources.RestRes
 	},
 
 	/**
-	 * Get query vars for Customize preview query.
+	 * Rewrite WP API Ajax requests to inject Customizer state.
 	 *
-	 * @returns {{
-	 *     customized: string,
-	 *     nonce: string,
-	 *     wp_customize: string,
-	 *     theme: string
-	 * }}
+	 * @todo This is done in the preview automatically.
+	 *
+	 * @param {object} options
+	 * @param {string} options.type
+	 * @param {string} options.url
+	 * @param {object} originalOptions
+	 * @param {object} xhr
 	 */
-	getCustomizeQueryVars: function() {
-		return wp.customize.previewer.query();
+	prefilterAjax: function( options, originalOptions, xhr ) {
+		var manager = this, restMethod;
+
+		// Abort if not API request or Customizer preview not initialized yet.
+		if ( 0 !== options.url.indexOf( manager.restApiRoot ) ) {
+			return;
+		}
+
+		restMethod = options.type.toUpperCase();
+
+		if ( 'GET' !== restMethod && 'HEAD' !== restMethod && 'undefined' !== typeof console.warn ) {
+			throw new Error( 'Attempted ' + restMethod + ' request for ' + options.url + ' when in Customizer. Write interception is not yet implemented.' );
+		}
+
+		// Customizer currently requires POST requests, so use override (force Backbone.emulateHTTP).
+		if ( 'POST' !== restMethod ) {
+			xhr.setRequestHeader( 'X-HTTP-Method-Override', restMethod );
+			options.type = 'POST';
+		}
+
+		// Eliminate context param because we will be adding edit context.
+		if ( ! options.data ) {
+			options.data = '';
+		}
+
+		if ( options.data && 'GET' === restMethod ) {
+			/*
+			 * Make sure the query vars for the REST API persist in GET (since
+			 * REST API explicitly look at $_GET['filter']).
+			 * We have to make sure the REST query vars are added as GET params
+			 * when the method is GET as otherwise they won't be parsed properly.
+			 * The issue lies in \WP_REST_Request::get_parameter_order() which
+			 * only is looking at \WP_REST_Request::$method instead of $_SERVER['REQUEST_METHOD'].
+			 * @todo Improve \WP_REST_Request::get_parameter_order() to be more aware of X-HTTP-Method-Override
+			 */
+			if ( options.url.indexOf( '?' ) === -1 ) {
+				options.url += '?';
+			} else {
+				options.url += '&';
+			}
+			options.url += options.data;
+		}
+
+		// Add Customizer post data.
+		if ( options.data ) {
+			options.data += '&';
+		}
+		options.data += jQuery.param( wp.customize.previewer.query() );
 	}
 });

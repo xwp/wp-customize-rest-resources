@@ -201,18 +201,6 @@ class Plugin extends Plugin_Base {
 
 		wp_enqueue_style( 'customize-rest-resources-pane' );
 		wp_enqueue_script( 'customize-rest-resources-pane-manager' );
-		add_action( 'customize_controls_print_footer_scripts', array( $this, 'boot_pane_script' ), 100 );
-	}
-
-	/**
-	 * Boot script for Customizer pane.
-	 *
-	 * @throws Exception If the schema could not be obtained.
-	 * @action customize_controls_print_footer_scripts
-	 */
-	public function boot_pane_script() {
-		global $wp_customize;
-		wp_print_scripts( array( 'customize-rest-resources-pane-manager' ) );
 
 		$rest_server = \rest_get_server();
 		$rest_request = new \WP_REST_Request( 'GET', '/' );
@@ -222,9 +210,20 @@ class Plugin extends Plugin_Base {
 		}
 		$schema = $rest_server->get_data_for_routes( $rest_server->get_routes(), 'help' );
 
+		// Remove arg_options to prevent recursion error and since not needed for exporting.
+		$remove_arg_options = function( &$value ) use ( &$remove_arg_options ) {
+			if ( is_object( $value ) && 'stdClass' !== get_class( $value ) ) {
+				$value = null;
+			} elseif ( is_array( $value ) ) {
+				unset( $value['arg_options'] );
+				foreach ( $value as $key => &$item ) {
+					$remove_arg_options( $item );
+				}
+			}
+		};
+		$remove_arg_options( $schema );
+
 		$args = array(
-			'previewedTheme' => $wp_customize->get_stylesheet(),
-			'previewNonce' => wp_create_nonce( 'preview-customize_' . $wp_customize->get_stylesheet() ),
 			'restApiRoot' => get_rest_url(),
 			'schema' => $schema,
 			'timezoneOffsetString' => $this->get_timezone_offset_string(),
@@ -232,12 +231,9 @@ class Plugin extends Plugin_Base {
 				'expectedObjectValue' => __( 'Expected object value.', 'customize-rest-resources' ),
 			),
 		);
-		?>
-		<script>
-		/* global CustomizeRestResources */
-		CustomizeRestResources.manager = new CustomizeRestResources.RestResourcesPaneManager( <?php echo wp_json_encode( $args ) ?> );
-		</script>
-		<?php
+
+		$js = sprintf( 'CustomizeRestResources.manager = new CustomizeRestResources.RestResourcesPaneManager( %s );', wp_json_encode( $args ) );
+		wp_add_inline_script( 'customize-rest-resources-pane-manager', $js );
 	}
 
 	/**
@@ -285,43 +281,13 @@ class Plugin extends Plugin_Base {
 		}
 
 		wp_enqueue_script( 'customize-rest-resources-preview-manager' );
-		add_action( 'wp_head', array( $this, 'boot_preview_script' ), 1000 );
-	}
-
-	/**
-	 * Boot script for Customizer preview.
-	 *
-	 * @action wp_head
-	 */
-	public function boot_preview_script() {
-		global $wp_customize;
-		wp_print_scripts( array( 'customize-rest-resources-preview-manager' ) );
-
-		$dirty_setting_values = array();
-		foreach ( array_keys( $wp_customize->unsanitized_post_values() ) as $setting_id ) {
-			if ( ! preg_match( '#^rest_resource\[#', $setting_id ) ) {
-				continue;
-			}
-			$setting = $wp_customize->get_setting( $setting_id );
-			if ( $setting ) {
-				$dirty_setting_values[ $setting_id ] = $setting->value();
-			}
-		}
 
 		$args = array(
-			'previewedTheme' => $wp_customize->get_stylesheet(),
-			'previewNonce' => wp_create_nonce( 'preview-customize_' . $wp_customize->get_stylesheet() ),
 			'restApiRoot' => get_rest_url(),
-			'initialDirtySettingValues' => $dirty_setting_values,
 		);
-		?>
-		<script>
-		/* global CustomizeRestResources */
-		CustomizeRestResources.manager = new CustomizeRestResources.RestResourcesPreviewManager( <?php echo wp_json_encode( $args ) ?> );
-		</script>
-		<?php
+		$js = sprintf( 'CustomizeRestResources.manager = new CustomizeRestResources.RestResourcesPreviewManager( %s );', wp_json_encode( $args ) );
+		wp_add_inline_script( 'customize-rest-resources-preview-manager', $js );
 	}
-
 
 	/**
 	 * Register section and controls for REST resources.

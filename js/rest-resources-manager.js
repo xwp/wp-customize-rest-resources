@@ -1,32 +1,16 @@
-/* global CustomizeRestResources, JSON, wp, jQuery, console */
+/* global CustomizeRestResources, JSON, wp */
 
 /**
  * Rest Resource Manager.
  *
  * @class
  * @param {object} args
- * @param {string} args.previewNonce
- * @param {string} args.previewedTheme
  * @param {string} args.restApiRoot
  */
 CustomizeRestResources.RestResourcesManager = wp.customize.Class.extend({
 
 	initialize: function( args ) {
 		var manager = this;
-
-		/**
-		 * Customizer preview nonce.
-		 *
-		 * @type {string}
-		 */
-		manager.previewNonce = args.previewNonce;
-
-		/**
-		 * Customizer previewed theme.
-		 *
-		 * @type {string}
-		 */
-		manager.previewedTheme = args.previewedTheme;
 
 		/**
 		 * REST API Root URL.
@@ -50,13 +34,11 @@ CustomizeRestResources.RestResourcesManager = wp.customize.Class.extend({
 		if ( 'undefined' === typeof wp.api ) {
 			throw new Error( 'wp.api is not defined' );
 		}
-		_.each( [ 'restApiRoot', 'previewNonce', 'previewedTheme' ], function( key ) {
+		_.each( [ 'restApiRoot' ], function( key ) {
 			if ( ! manager[ key ] ) {
 				throw new Error( 'Missing ' + key + ' arg' );
 			}
 		} );
-
-		jQuery.ajaxPrefilter( 'json', _.bind( manager.prefilterAjax, manager ) );
 
 		manager.injectModelSync();
 	},
@@ -75,32 +57,7 @@ CustomizeRestResources.RestResourcesManager = wp.customize.Class.extend({
 	},
 
 	/**
-	 * Get query vars for Customize preview query.
-	 *
-	 * @see wp.customize.previewer.query
-	 *
-	 * @returns {{
-	 *     customized: string,
-	 *     nonce: string,
-	 *     wp_customize: string,
-	 *     theme: string
-	 * }}
-	 */
-	getCustomizeQueryVars: function() {
-		var manager = this, customized = {};
-		wp.customize.each( function( setting, settingId ) {
-			customized[ settingId ] = wp.customize( settingId ).get();
-		} );
-		return {
-			wp_customize: 'on',
-			theme: manager.previewedTheme,
-			nonce: manager.previewNonce,
-			customized: JSON.stringify( customized )
-		};
-	},
-
-	/**
-	 * Get the ID for the Customzier setting (or control).
+	 * Get the ID for the Customizer setting (or control).
 	 *
 	 * @param {object} resource
 	 * @param {object} resource._links
@@ -203,65 +160,6 @@ CustomizeRestResources.RestResourcesManager = wp.customize.Class.extend({
 				registerSelf.call( this );
 			} );
 		}
-	},
-
-	/**
-	 * Rewrite WP API Ajax requests to inject Customizer state.
-	 *
-	 * @param {object} options
-	 * @param {string} options.type
-	 * @param {string} options.url
-	 * @param {object} originalOptions
-	 * @param {object} xhr
-	 */
-	prefilterAjax: function( options, originalOptions, xhr ) {
-		var manager = this, restMethod;
-
-		// Abort if not API request or Customizer preview not initialized yet.
-		if ( 0 !== options.url.indexOf( manager.restApiRoot ) ) {
-			return;
-		}
-
-		restMethod = options.type.toUpperCase();
-
-		if ( 'GET' !== restMethod && 'HEAD' !== restMethod && 'undefined' !== typeof console.warn ) {
-			throw new Error( 'Attempted ' + restMethod + ' request for ' + options.url + ' when in Customizer. Write interception is not yet implemented.' );
-		}
-
-		// Customizer currently requires POST requests, so use override (force Backbone.emulateHTTP).
-		if ( 'POST' !== restMethod ) {
-			xhr.setRequestHeader( 'X-HTTP-Method-Override', restMethod );
-			options.type = 'POST';
-		}
-
-		// Eliminate context param because we will be adding edit context.
-		if ( ! options.data ) {
-			options.data = '';
-		}
-
-		if ( options.data && 'GET' === restMethod ) {
-			/*
-			 * Make sure the query vars for the REST API persist in GET (since
-			 * REST API explicitly look at $_GET['filter']).
-			 * We have to make sure the REST query vars are added as GET params
-			 * when the method is GET as otherwise they won't be parsed properly.
-			 * The issue lies in \WP_REST_Request::get_parameter_order() which
-			 * only is looking at \WP_REST_Request::$method instead of $_SERVER['REQUEST_METHOD'].
-			 * @todo Improve \WP_REST_Request::get_parameter_order() to be more aware of X-HTTP-Method-Override
-			 */
-			if ( options.url.indexOf( '?' ) === -1 ) {
-				options.url += '?';
-			} else {
-				options.url += '&';
-			}
-			options.url += options.data;
-		}
-
-		// Add Customizer post data.
-		if ( options.data ) {
-			options.data += '&';
-		}
-		options.data += jQuery.param( manager.getCustomizeQueryVars() );
 	}
 } );
 
