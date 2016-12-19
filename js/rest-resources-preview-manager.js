@@ -76,7 +76,7 @@ CustomizeRestResources.RestResourcesPreviewManager = CustomizeRestResources.Rest
 				try {
 					resource = JSON.parse( value );
 				} catch ( e ) {
-					if ( typeof console !== 'undefined' ) {
+					if ( 'undefined' !== typeof console ) {
 						console.error( e );
 					}
 					return;
