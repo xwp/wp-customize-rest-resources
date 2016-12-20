@@ -1,4 +1,4 @@
-/* global wp, CustomizeRestResources, JSON */
+/* global wp, CustomizeRestResources, JSON, console */
 
 /**
  * Rest Resource Preview Manager.
@@ -15,18 +15,6 @@ CustomizeRestResources.RestResourcesPreviewManager = CustomizeRestResources.Rest
 	initialize: function( args ) {
 		var manager = this;
 		CustomizeRestResources.RestResourcesManager.prototype.initialize.call( manager, args );
-
-		/**
-		 * Mapping of setting IDs to initial dirty setting value.
-		 *
-		 * This is used when a script in the preview attempts to make a request
-		 * to the REST API before the Customizer settings are initialized.
-		 *
-		 * @todo Remove this once #35616 is available.
-		 *
-		 * @type {Object.<string, *>}
-		 */
-		manager.initialDirtySettingValues = args.initialDirtySettingValues || {};
 
 		/**
 		 * List of the IDs for settings that are dirty.
@@ -50,16 +38,6 @@ CustomizeRestResources.RestResourcesPreviewManager = CustomizeRestResources.Rest
 			// @todo Redirect all API writes into messages sent to the wp.customize.preview
 
 			wp.customize.preview.bind( 'setting', _.bind( manager.receiveSetting, manager ) );
-
-			// @todo Remove this once #35616 is available.
-			// Keep track of which settings are dirty.
-			wp.customize.preview.bind( 'rest-resource-dirty-setting', function( settingIds ) {
-				_.each( settingIds, function( settingId ) {
-					if ( -1 === manager.dirtySettings.indexOf( settingId ) ) {
-						manager.dirtySettings.push( settingId );
-					}
-				} );
-			} );
 
 			wp.customize.preview.bind( 'active', function() {
 				manager.previewActive.resolve();
@@ -94,7 +72,15 @@ CustomizeRestResources.RestResourcesPreviewManager = CustomizeRestResources.Rest
 		if ( models ) {
 
 			_.each( models, function( model ) {
-				var resource = JSON.parse( value );
+				var resource;
+				try {
+					resource = JSON.parse( value );
+				} catch ( e ) {
+					if ( 'undefined' !== typeof console ) {
+						console.error( e );
+					}
+					return;
+				}
 
 				// Make sure that any embedded resources get updated to reflect any dirty.
 				if ( resource._embedded ) {
@@ -129,12 +115,11 @@ CustomizeRestResources.RestResourcesPreviewManager = CustomizeRestResources.Rest
 	 * This method should be called whenever a JS model (e.g. Backbone Model) is used to represent a REST resource.
 	 *
 	 * @param {string} settingId
-	 * @param {object} resource
 	 */
-	notifySettingPostMessageTransportEligible: function( settingId, resource ) {
+	notifySettingPostMessageTransportEligible: function( settingId ) {
 		var manager = this;
 		manager.previewActive.done( function() {
-			wp.customize.preview.send( 'rest-resource-setting-postmessage-transport-eligible', settingId, resource );
+			wp.customize.preview.send( 'rest-resource-setting-postmessage-transport-eligible', settingId );
 		} );
 	},
 
@@ -191,33 +176,5 @@ CustomizeRestResources.RestResourcesPreviewManager = CustomizeRestResources.Rest
 			// Ensure the setting is created. This will be done automatically if there is a Backbone model.
 			manager.ensureSetting( resource );
 		} );
-	},
-
-	/**
-	 *
-	 * @see wp.customize.previewer.query
-	 *
-	 * @returns {{
-	 *     customized: string,
-	 *     nonce: string,
-	 *     wp_customize: string,
-	 *     theme: string
-	 * }}
-	 */
-	getCustomizeQueryVars: function() {
-		var manager = this, customized = {};
-		_.each( manager.dirtySettings, function( settingId ) {
-			if ( wp.customize.has( settingId ) ) {
-				customized[ settingId ] = wp.customize( settingId ).get();
-			} else if ( 'pending' === manager.previewActive.state() && manager.initialDirtySettingValues[ settingId ] ) {
-				customized[ settingId ] = manager.initialDirtySettingValues[ settingId ];
-			}
-		} );
-		return {
-			wp_customize: 'on',
-			theme: manager.previewedTheme,
-			nonce: manager.previewNonce,
-			customized: JSON.stringify( customized )
-		};
 	}
 });

@@ -46,55 +46,11 @@ class Plugin extends Plugin_Base {
 		add_action( 'customize_register', array( $this, 'customize_register' ), 20 );
 		add_action( 'customize_dynamic_setting_args', array( $this, 'filter_dynamic_setting_args' ), 10, 2 );
 		add_action( 'customize_dynamic_setting_class', array( $this, 'filter_dynamic_setting_class' ), 10, 3 );
-		add_action( 'rest_api_init', array( $this, 'remove_customize_signature' ) );
 
-		add_filter( 'wp_rest_server_class', array( $this, 'filter_wp_rest_server_class' ), 100 );
 		add_filter( 'rest_pre_dispatch', array( $this, 'use_edit_context_for_requests' ), 10, 3 );
 		add_filter( 'rest_post_dispatch', array( $this, 'export_context_with_response' ), 10, 3 );
 
 		add_action( 'customize_controls_print_footer_scripts', array( $this, 'print_templates' ) );
-	}
-
-	/**
-	 * Get instance of WP_REST_Server.
-	 *
-	 * @todo This should be part of Core.
-	 *
-	 * @return \WP_REST_Server
-	 */
-	public function get_rest_server() {
-		/**
-		 * REST Server.
-		 *
-		 * @var \WP_REST_Server $wp_rest_server
-		 */
-		global $wp_rest_server;
-		if ( empty( $wp_rest_server ) ) {
-			/** This filter is documented in wp-includes/rest-api.php */
-			$wp_rest_server_class = apply_filters( 'wp_rest_server_class', 'WP_REST_Server' );
-			$wp_rest_server = new $wp_rest_server_class();
-
-			/** This filter is documented in wp-includes/rest-api.php */
-			do_action( 'rest_api_init', $wp_rest_server );
-		}
-		return $wp_rest_server;
-	}
-
-	/**
-	 * Filter the WP_REST_Server to be our Customizer subclass.
-	 *
-	 * @param string $class Class name.
-	 * @return string
-	 */
-	public function filter_wp_rest_server_class( $class ) {
-		if ( is_customize_preview() ) {
-			if ( 'WP_REST_Server' !== $class ) {
-				trigger_error( esc_html( sprintf( 'Cannot filter wp_rest_server_class because $class is not "WP_REST_Server" (got "%s" instead).', $class ) ), \E_USER_WARNING );
-			} else {
-				$class = __NAMESPACE__ . '\\WP_Customize_REST_Server';
-			}
-		}
-		return $class;
 	}
 
 	/**
@@ -157,7 +113,7 @@ class Plugin extends Plugin_Base {
 	public function show_missing_rest_api_admin_notice() {
 		?>
 		<div class="error">
-			<p><?php esc_html_e( 'The Customize REST Resources plugin requires the WordPress REST API to be available and enabled, including the WP-API plugin.', 'customize-rest-resources' ); ?></p>
+			<p><?php esc_html_e( 'The Customize REST Resources plugin requires the WordPress REST API to be available and enabled, including WordPress 4.7 or the WP-API plugin.', 'customize-rest-resources' ); ?></p>
 		</div>
 		<?php
 	}
@@ -245,20 +201,8 @@ class Plugin extends Plugin_Base {
 
 		wp_enqueue_style( 'customize-rest-resources-pane' );
 		wp_enqueue_script( 'customize-rest-resources-pane-manager' );
-		add_action( 'customize_controls_print_footer_scripts', array( $this, 'boot_pane_script' ), 100 );
-	}
 
-	/**
-	 * Boot script for Customizer pane.
-	 *
-	 * @throws Exception If the schema could not be obtained.
-	 * @action customize_controls_print_footer_scripts
-	 */
-	public function boot_pane_script() {
-		global $wp_customize;
-		wp_print_scripts( array( 'customize-rest-resources-pane-manager' ) );
-
-		$rest_server = $this->get_rest_server();
+		$rest_server = \rest_get_server();
 		$rest_request = new \WP_REST_Request( 'GET', '/' );
 		$rest_response = $rest_server->dispatch( $rest_request );
 		if ( $rest_response->is_error() ) {
@@ -266,19 +210,30 @@ class Plugin extends Plugin_Base {
 		}
 		$schema = $rest_server->get_data_for_routes( $rest_server->get_routes(), 'help' );
 
+		// Remove arg_options to prevent recursion error and since not needed for exporting.
+		$remove_arg_options = function( &$value ) use ( &$remove_arg_options ) {
+			if ( is_object( $value ) && 'stdClass' !== get_class( $value ) ) {
+				$value = null;
+			} elseif ( is_array( $value ) ) {
+				unset( $value['arg_options'] );
+				foreach ( $value as $key => &$item ) {
+					$remove_arg_options( $item );
+				}
+			}
+		};
+		$remove_arg_options( $schema );
+
 		$args = array(
-			'previewedTheme' => $wp_customize->get_stylesheet(),
-			'previewNonce' => wp_create_nonce( 'preview-customize_' . $wp_customize->get_stylesheet() ),
 			'restApiRoot' => get_rest_url(),
 			'schema' => $schema,
 			'timezoneOffsetString' => $this->get_timezone_offset_string(),
+			'l10n' => array(
+				'expectedObjectValue' => __( 'Expected object value.', 'customize-rest-resources' ),
+			),
 		);
-		?>
-		<script>
-		/* global CustomizeRestResources */
-		CustomizeRestResources.manager = new CustomizeRestResources.RestResourcesPaneManager( <?php echo wp_json_encode( $args ) ?> );
-		</script>
-		<?php
+
+		$js = sprintf( 'CustomizeRestResources.manager = new CustomizeRestResources.RestResourcesPaneManager( %s );', wp_json_encode( $args ) );
+		wp_add_inline_script( 'customize-rest-resources-pane-manager', $js );
 	}
 
 	/**
@@ -294,7 +249,7 @@ class Plugin extends Plugin_Base {
 			$tz = new \DateTimeZone( $tz_str );
 			$date = new \DateTime( 'now', $tz );
 			$offset_str = $date->format( 'P' );
-		} else if ( $gmt_offset ) {
+		} elseif ( $gmt_offset ) {
 			$gmt_offset *= 60;
 			$hours = floor( abs( $gmt_offset ) / 60 );
 			$minutes = ( abs( $gmt_offset ) % 60 );
@@ -326,43 +281,13 @@ class Plugin extends Plugin_Base {
 		}
 
 		wp_enqueue_script( 'customize-rest-resources-preview-manager' );
-		add_action( 'wp_head', array( $this, 'boot_preview_script' ), 1000 );
-	}
-
-	/**
-	 * Boot script for Customizer preview.
-	 *
-	 * @action wp_head
-	 */
-	public function boot_preview_script() {
-		global $wp_customize;
-		wp_print_scripts( array( 'customize-rest-resources-preview-manager' ) );
-
-		$dirty_setting_values = array();
-		foreach ( array_keys( $wp_customize->unsanitized_post_values() ) as $setting_id ) {
-			if ( ! preg_match( '#^rest_resource\[#', $setting_id ) ) {
-				continue;
-			}
-			$setting = $wp_customize->get_setting( $setting_id );
-			if ( $setting ) {
-				$dirty_setting_values[ $setting_id ] = $setting->value();
-			}
-		}
 
 		$args = array(
-			'previewedTheme' => $wp_customize->get_stylesheet(),
-			'previewNonce' => wp_create_nonce( 'preview-customize_' . $wp_customize->get_stylesheet() ),
 			'restApiRoot' => get_rest_url(),
-			'initialDirtySettingValues' => $dirty_setting_values,
 		);
-		?>
-		<script>
-		/* global CustomizeRestResources */
-		CustomizeRestResources.manager = new CustomizeRestResources.RestResourcesPreviewManager( <?php echo wp_json_encode( $args ) ?> );
-		</script>
-		<?php
+		$js = sprintf( 'CustomizeRestResources.manager = new CustomizeRestResources.RestResourcesPreviewManager( %s );', wp_json_encode( $args ) );
+		wp_add_inline_script( 'customize-rest-resources-preview-manager', $js );
 	}
-
 
 	/**
 	 * Register section and controls for REST resources.
@@ -381,7 +306,7 @@ class Plugin extends Plugin_Base {
 		) );
 		$wp_customize->add_section( $section );
 
-		// @todo Create a panel with multiple sections correspondng to each endpoint.
+		// @todo Create a panel with multiple sections corresponding to each endpoint.
 		// @todo Mirror this in JS.
 		$i = 0;
 		foreach ( $wp_customize->settings() as $setting ) {
@@ -451,18 +376,5 @@ class Plugin extends Plugin_Base {
 			</div>
 		</script>
 		<?php
-	}
-
-	/**
-	 * Remove the Customizer preview signature during REST API requests since it corrupts the JSON.
-	 *
-	 * @action rest_api_init
-	 */
-	public function remove_customize_signature() {
-		global $wp_customize;
-		if ( ! is_customize_preview() || empty( $wp_customize ) || ! defined( 'REST_REQUEST' ) ) {
-			return;
-		}
-		$wp_customize->remove_preview_signature();
 	}
 }

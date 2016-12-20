@@ -73,15 +73,15 @@ CustomizeRestResources.RestResourceControl = wp.customize.Control.extend({
 		control.parsedSettingValue = new wp.customize.Value();
 
 		control.setting.bind( function( newValue ) {
-			var setting = this, parsedValue;
+			var setting = this, parsedValue, notification;
 			try {
 				parsedValue = JSON.parse( newValue );
-				control.container.removeClass( 'syntax-error' );
-
-				// @todo Will this blow away any validation message supplied from the server every time?
-				if ( setting.validationMessage ) {
-					setting.validationMessage.set( '' );
+				if ( ! _.isObject( parsedValue ) ) {
+					throw new Error( CustomizeRestResources.manager.l10n.expectedObjectValue );
 				}
+
+				control.container.removeClass( 'syntax-error' );
+				setting.notifications.remove( 'json_error' );
 
 				// Update the parsed setting value which will trigger the updates.
 				if ( ! _.isEqual( parsedValue, control.parsedSettingValue.get() ) ) {
@@ -89,9 +89,10 @@ CustomizeRestResources.RestResourceControl = wp.customize.Control.extend({
 				}
 			} catch ( e ) {
 				control.container.addClass( 'syntax-error' );
-				if ( setting.validationMessage ) {
-					setting.validationMessage.set( e.message );
-				}
+				notification = new wp.customize.Notification( 'json_error', {
+					message: e.message
+				} );
+				setting.notifications.add( notification.code, notification );
 			}
 		} );
 
@@ -146,7 +147,7 @@ CustomizeRestResources.RestResourceControl = wp.customize.Control.extend({
 	 * @param {string} datetimeString
 	 * @returns {boolean}
 	 */
-	hasTimezoneSufix: function( datetimeString ) {
+	hasTimezoneSuffix: function( datetimeString ) {
 		return /(Z|[-+]\d\d:?\d\d)$/.test( datetimeString );
 	},
 
@@ -267,7 +268,7 @@ CustomizeRestResources.RestResourceControl = wp.customize.Control.extend({
 				if ( ! _.isString( value ) ) {
 					value = JSON.stringify( value );
 				}
-			} else if ( value && 'date-time' === fieldSchema.format && ! control.hasTimezoneSufix( value ) ) {
+			} else if ( value && 'date-time' === fieldSchema.format && ! control.hasTimezoneSuffix( value ) ) {
 				if ( isDateGMT ) {
 					value += 'Z';
 				} else {
@@ -304,6 +305,9 @@ CustomizeRestResources.RestResourceControl = wp.customize.Control.extend({
 				} catch ( e ) {
 					container.addClass( 'json-parse-error' );
 					input[0].setCustomValidity( e.message );
+					if ( input[0].reportValidity ) {
+						input[0].reportValidity();
+					}
 					return;
 				}
 			}

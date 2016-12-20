@@ -75,11 +75,7 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 	public function preview() {
 		$callback = array( __CLASS__, 'filter_rest_post_dispatch' );
 		if ( ! has_filter( 'rest_post_dispatch', $callback ) ) {
-			add_filter( 'rest_post_dispatch', $callback, 20, 3 );
-		}
-		$callback = array( __CLASS__, 'filter_customize_rest_server_response_data' );
-		if ( ! has_filter( 'customize_rest_server_response_data', $callback ) ) {
-			add_filter( 'customize_rest_server_response_data', $callback );
+			add_filter( 'rest_post_dispatch', $callback, 20 );
 		}
 		static::$previewed_routes[ $this->route ] = $this;
 		$this->is_previewed = true;
@@ -89,20 +85,25 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 	/**
 	 * Sanitize (and validate) an input.
 	 *
-	 * @param string $value   The value to sanitize.
-	 * @param bool   $strict  Whether validation is being done. This is part of the proposed patch in in #34893.
-	 * @return string|array|null Null if an input isn't valid, otherwise the sanitized value.
+	 * @param string $value The JSON value to sanitize.
+	 * @return string|\WP_Error Error if an input isn't valid, otherwise the sanitized value.
 	 */
-	public function sanitize( $value, $strict = false ) {
-		unset( $setting );
-
-		// The customize_validate_settings action is part of the Customize Setting Validation plugin.
-		if ( ! $strict && doing_action( 'customize_validate_settings' ) ) {
-			$strict = true;
-		}
-
+	public function sanitize( $value ) {
 		$route = '/' . ltrim( $this->route, '/' );
 		$request = new \WP_REST_Request( 'PUT', $route );
+
+		$parsed_value = json_decode( $value, true );
+		if ( json_last_error() ) {
+			if ( function_exists( 'json_last_error_msg' ) ) {
+				$error_message = sprintf( __( 'JSON Error: %s', 'customize-rest-resources' ), json_last_error_msg() );
+			} else {
+				$error_message = __( 'JSON Syntax Error', 'customize-rest-resources' );
+			}
+			return new \WP_Error( 'json_error', $error_message, array( 'code' => json_last_error() ) );
+		} elseif ( ! is_array( $parsed_value ) ) {
+			return new \WP_Error( 'invalid_value', __( 'Expected object value.', 'customize-rest-resources' ) );
+		}
+
 		$request->set_body( $value );
 
 		$validity_errors = new \WP_Error();
@@ -114,7 +115,6 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 		 *
 		 * @param $dispatch_result
 		 * @param \WP_REST_Request $dispatched_request
-		 *
 		 * @return bool
 		 */
 		$intercept_request_dispatch = function ( $dispatch_result, \WP_REST_Request $dispatched_request ) use ( &$request ) {
@@ -124,7 +124,7 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 		};
 
 		add_filter( 'rest_dispatch_request', $intercept_request_dispatch, 10, 2 );
-		$this->plugin->get_rest_server()->dispatch( $request );
+		\rest_get_server()->dispatch( $request );
 		remove_filter( 'rest_dispatch_request', $intercept_request_dispatch );
 
 		$data = json_decode( $request->get_body(), true );
@@ -139,19 +139,25 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 			if ( ! isset( $args[ $key ] ) || ! isset( $data[ $key ] ) ) {
 				continue;
 			}
-			$value = $data[ $key ];
-			if ( isset( $args[ $key ]['sanitize_callback'] ) ) {
-				$value = call_user_func( $args[ $key ]['sanitize_callback'], $value, $request, $key );
-			}
-			if ( $strict && isset( $args[ $key ]['validate_callback'] ) ) {
-				$validity = call_user_func( $args[ $key ]['validate_callback'], $value, $request, $key );
+			$valid = true;
+			if ( isset( $args[ $key ]['validate_callback'] ) ) {
+				$validity = call_user_func( $args[ $key ]['validate_callback'], $data[ $key ], $request, $key );
 				if ( is_wp_error( $validity ) ) {
-					foreach ( $validity->errors as $code => $message ) {
-						$validity_errors->add( $code, $message, $validity->get_error_data( $code ) );
+					foreach ( $validity->errors as $code => $messages ) {
+						foreach ( $messages as $message ) {
+							$validity_errors->add( $code, $message, $validity->get_error_data( $code ) );
+						}
 					}
+					$valid = false;
 				}
 			}
-			$data[ $key ] = $value;
+			if ( $valid ) {
+				$value = $data[ $key ];
+				if ( isset( $args[ $key ]['sanitize_callback'] ) ) {
+					$value = call_user_func( $args[ $key ]['sanitize_callback'], $value, $request, $key );
+				}
+				$data[ $key ] = $value;
+			}
 		}
 
 		if ( count( $validity_errors->errors ) > 0 ) {
@@ -159,26 +165,6 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 		}
 
 		return wp_json_encode( $data );
-	}
-
-	/**
-	 * Filter the API response to inject the Customized REST resources.
-	 *
-	 * @param array $data Data.
-	 * @return array Filtered data.
-	 */
-	static public function filter_customize_rest_server_response_data( $data ) {
-		if ( isset( $data['_links'] ) ) {
-			$data = static::filter_single_resource( $data );
-		} else if ( isset( $data[0] ) ) {
-			$data = array_map(
-				function( $item ) {
-					return static::filter_single_resource( $item );
-				},
-				$data
-			);
-		}
-		return $data;
 	}
 
 	/**
@@ -190,17 +176,9 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 	 * used in our WP_REST_Server subclass.
 	 *
 	 * @param \WP_HTTP_Response $result  Result to send to the client. Usually a \WP_REST_Response.
-	 * @param \WP_REST_Server   $server  Server instance.
-	 * @param \WP_REST_Request  $request Request used to generate the response.
 	 * @return \WP_REST_Response
 	 */
-	static public function filter_rest_post_dispatch( $result, $server, $request ) {
-		// Skip filtering on rest_post_dispatch if our server subclass is used.
-		if ( $server instanceof WP_Customize_REST_Server ) {
-			return $result;
-		}
-
-		unset( $request );
+	static public function filter_rest_post_dispatch( $result ) {
 		$data = $result->get_data();
 
 		$links = null;
@@ -210,7 +188,7 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 
 		if ( ! empty( $links ) ) {
 			$data = static::filter_single_resource( $data, $links );
-		} else if ( isset( $data[0] ) ) {
+		} elseif ( isset( $data[0] ) ) {
 			$data = array_map(
 				array( __CLASS__, 'filter_single_resource' ),
 				$data
@@ -279,7 +257,7 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 	 * @return string JSON default value.
 	 */
 	public function get_default() {
-		$rest_server = $this->plugin->get_rest_server();
+		$rest_server = \rest_get_server();
 		$rest_request = new \WP_REST_Request( 'OPTIONS', '/' . $this->route );
 		$rest_response = $rest_server->dispatch( $rest_request );
 		if ( $rest_response->is_error() ) {
@@ -306,7 +284,7 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 			foreach ( $field['properties'] as $property_name => $sub_properties ) {
 				$value[ $property_name ] = $this->get_field_default_value( $sub_properties );
 			}
-		} else if ( isset( $field['default'] ) ) {
+		} elseif ( isset( $field['default'] ) ) {
 			$value = $field['default'];
 		} else {
 			// @todo Try to provide default values based on type?
@@ -326,7 +304,7 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 			$value = $this->post_value();
 		}
 		if ( ! $value ) {
-			$rest_server = $this->plugin->get_rest_server();
+			$rest_server = \rest_get_server();
 			$route = '/' . ltrim( $this->route, '/' );
 			$rest_request = new \WP_REST_Request( 'GET', $route );
 			$rest_response = $rest_server->dispatch( $rest_request );
@@ -348,7 +326,7 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 	 * @return bool The result of saving the value.
 	 */
 	protected function update( $value ) {
-		$wp_rest_server = $this->plugin->get_rest_server();
+		$wp_rest_server = \rest_get_server();
 		$route = '/' . ltrim( $this->route, '/' );
 		$rest_request = new \WP_REST_Request( 'PUT', $route );
 		$rest_request->set_header( 'content-type', 'application/json' );
