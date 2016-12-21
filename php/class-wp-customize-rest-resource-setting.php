@@ -129,10 +129,9 @@ class WP_Customize_REST_Resource_Setting extends \WP_Customize_Setting {
 
 		$data = json_decode( $request->get_body(), true );
 		unset( $data['_embedded'] );
-		$attributes = $request->get_attributes();
+		$attributes = $request->get_attributes(); // @todo Allow JSON args instead?
 		if ( ! isset( $attributes['args'] ) ) {
-			trigger_error( "Unable to gather args for $this->id", E_USER_WARNING ); // WPCS: XSS OK.
-			return null;
+			return new \WP_Error( 'lacking_rest_args', "Unable to gather args for $this->id" );
 		}
 		$args = $attributes['args'];
 		foreach ( array_keys( $data ) as $key ) {
