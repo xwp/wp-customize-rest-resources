@@ -38,8 +38,9 @@ Here's a quick demo of an alpha state of this plugin when used with the [Next Re
 
 == Limitations ==
 
-* Plugin will not be able to customize JSONP requests to the WP REST API, due to how it needs to rewrite Ajax requests using `jQuery.prefilter`.
-* REST resources can only be customized if they are served by the WordPress site being previewed. As such, customizing headless WordPress-driven sites is not yet possible.
+* Changes made to REST resources will not be synced to other “native” settings in the customizer. For example, if you have the Customize Posts plugin there will be panels and sections added for all of the posts/pages that appear in the preview. If you modify a `post` or `postmeta` setting as added by Customize Posts, the changes there will not sync into the corresponding `rest_resource` setting. Likewise, if you modify a `rest_resource` setting for a `post` resource, the changes won't sync into the `post`/`postmeta` settings as added by Customize Posts. In other words, this plugin allows for changes to be modified in more than one place and a bridge between the settings is not implemented as this Customize REST Resources plugin is primarily a proof of concept.
+* Responses to JSONP requests to the WP REST API will be ignored since they cannot be intercepted in Ajax requests using `jQuery.prefilter`.
+* REST resources can only be customized if they are served by the WordPress site being previewed. As such, customizing headless WordPress-driven sites is not yet supported.
 * Fields that have `raw` and `rendered` properties will be exposed as a single input tied to the `raw` property. Modifying the `raw` will supply the `raw` value to the `rendered` property. In the future, there should be an Ajax request which applies the rendering logic to the `raw` value so that it can be previewed properly.
 * Only existing REST resources can be customized. It is not yet possible to create new resources in the customizer.
 
