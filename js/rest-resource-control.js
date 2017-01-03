@@ -174,7 +174,7 @@ CustomizeRestResources.RestResourceControl = wp.customize.Control.extend({
 		// @todo Handle recursive.
 
 		// Handled nested raw/rendered objects, promoting the raw value to the top-level.
-		if ( 'object' === fieldSchema.type ) {
+		if ( 'object' === fieldSchema.type || ( _.isArray( fieldSchema.type ) && -1 !== _.indexOf( fieldSchema.type, 'object' ) ) ) {
 			if ( fieldSchema.properties && fieldSchema.properties.raw && ! _.isUndefined( settingValue[ fieldId ].raw ) ) {
 				fieldSchema = fieldSchema.properties.raw;
 				hasRaw = true;
