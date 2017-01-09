@@ -133,6 +133,11 @@ CustomizeRestResources.RestResourcesPreviewManager = CustomizeRestResources.Rest
 	 */
 	ensureSetting: function( resource ) {
 		var manager = this, setting;
+
+		if ( ! resource.id ) {
+			return null;
+		}
+
 		setting = CustomizeRestResources.RestResourcesManager.prototype.ensureSetting.call( manager, resource );
 
 		/*
