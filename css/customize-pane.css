@@ -25,9 +25,6 @@
 	display: none;
 }
 
-.customize-control-rest_resource label {
-	display: block;
-}
 .customize-control-rest_resource select {
 	width: 98%;
 	line-height: 18px;
