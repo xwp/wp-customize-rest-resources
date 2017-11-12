@@ -158,7 +158,7 @@ CustomizeRestResources.RestResourceControl = wp.customize.Control.extend({
 	 * @returns {{element: *, container: *}|null}
 	 */
 	createRouteFieldElement: function( fieldId ) {
-		var control = this, fieldSchema, elementValue, settingValue, element, input, container, domElementId, hasRaw, isNestedFallbackInput, matches, isDateGMT;
+		var control = this, fieldSchema, elementValue, settingValue, element, input, container, domElementId, hasRaw, isNestedFallbackInput, matches, isDateGMT, label;
 		domElementId  = 'element.' + control.route + '.' + fieldId;
 		fieldSchema = control.routeData.schema.properties[ fieldId ];
 		settingValue = control.parsedSettingValue.get();
@@ -166,10 +166,10 @@ CustomizeRestResources.RestResourceControl = wp.customize.Control.extend({
 		isDateGMT = false;
 
 		container = jQuery( '<li>' );
-		container.append( jQuery( '<label>', {
+		label = jQuery( '<label>', {
 			text: fieldId,
 			'for': domElementId
-		} ) );
+		} );
 
 		// @todo Handle recursive.
 
@@ -244,6 +244,11 @@ CustomizeRestResources.RestResourceControl = wp.customize.Control.extend({
 		}
 
 		container.append( input );
+		if ( 'checkbox' === input.attr( 'type' ) ) {
+			container.append( label );
+		} else {
+			container.prepend( label );
+		}
 
 		element = new wp.customize.Element( input );
 		if ( hasRaw ) {

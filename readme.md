@@ -5,11 +5,12 @@ Edit any resource fetched from the WP REST API in the Customizer, with fields au
 
 **Contributors:** [westonruter](https://profiles.wordpress.org/westonruter), [xwp](https://profiles.wordpress.org/xwp)  
 **Requires at least:** 4.7  
-**Tested up to:** 4.7  
+**Tested up to:** 4.9  
 **Stable tag:** trunk (master)  
 **License:** [GPLv2 or later](http://www.gnu.org/licenses/gpl-2.0.html)  
+**Requires PHP:** 5.3  
 
-[![Build Status](https://travis-ci.org/xwp/wp-customize-rest-resources.svg?branch=master)](https://travis-ci.org/xwp/wp-customize-rest-resources) [![Built with Grunt](https://cdn.gruntjs.com/builtwith.svg)](http://gruntjs.com) [![devDependency Status](https://david-dm.org/xwp/wp-customize-rest-resources/dev-status.svg)](https://david-dm.org/xwp/wp-customize-rest-resources#info=devDependencies) 
+[![Build Status](https://travis-ci.org/xwp/wp-customize-rest-resources.svg?branch=master)](https://travis-ci.org/xwp/wp-customize-rest-resources) [![Built with Grunt](https://cdn.gruntjs.com/builtwith.svg)](http://gruntjs.com) [![devDependency Status](https://david-dm.org/xwp/wp-customize-rest-resources/dev-status.svg)](https://david-dm.org/xwp/wp-customize-rest-resources?type=dev) 
 
 ## Description ##
 

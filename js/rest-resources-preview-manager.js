@@ -43,6 +43,7 @@ CustomizeRestResources.RestResourcesPreviewManager = CustomizeRestResources.Rest
 				manager.previewActive.resolve();
 			} );
 
+			// @todo The window.fetch() function also needs to be wrapped to determine REST resources loaded via the Fetch API.
 			jQuery( document ).ajaxSuccess( _.bind( manager.handleAjaxSuccess, manager ) );
 		});
 
