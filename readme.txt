@@ -1,10 +1,11 @@
 === Customize REST Resources ===
 Contributors: westonruter, xwp
 Requires at least: 4.7
-Tested up to: 4.7
+Tested up to: 4.9
 Stable tag: trunk
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
+Requires PHP: 5.3
 
 Edit any resource fetched from the WP REST API in the Customizer, with fields automatically constructed from the schema.
 
